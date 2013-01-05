@@ -636,6 +636,8 @@ code {
   font-size: 13px;
   margin: 0 4px;
   padding: 4px 6px;
+  background-color: #2a2a29;
+  border-color: #1c1c1c;
   -webkit-border-radius: 2px;
   -moz-border-radius: 2px;
   -ms-border-radius: 2px;
