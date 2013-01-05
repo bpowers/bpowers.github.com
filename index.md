@@ -75,7 +75,7 @@ along with a nice little performance hack in the time package
 ### OLPC
 
 Once upon a time I was an intern with (and subsequently a community
-contributor to) [OLPC](http://laptop.org).  I helped with some
+member of) [OLPC](http://laptop.org).  I helped with some
 [bugs](http://dev.laptop.org/ticket/6797) that had cropped up, worked
 on a (sadly unfinished) [activity named
 Model](http://wiki.laptop.org/go/Model) to enable students to do
