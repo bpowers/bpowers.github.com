@@ -83,6 +83,12 @@ system dynamics modeling on the XOs, and [rewriting the boot animation
 in C](http://permalink.gmane.org/gmane.linux.laptop.olpc.devel/22884),
 speeding up boot time by 12 seconds.
 
+## Coffee
+
+I love coffee.  Eventually I will expand on that, but in the mean time
+feel free to corner me in real life to discuss coffee, ideally over a
+cup of coffee.
+
 ## Employment
 
 I'm currently happily employed at [SocialCode](http://socialcode.com).
