@@ -16,7 +16,7 @@ I've done along with occasional weblog postings.
   {% endfor %}
 </ul>
 
-## Projects
+## Selected Projects
 
 - [seshcookie](https://github.com/bpowers/seshcookie) - http sessions
   stored in encrypted cookies for Go.
