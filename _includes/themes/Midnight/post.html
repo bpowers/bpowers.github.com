@@ -1,9 +1,11 @@
 <div class="page-header">
-  <h1>{{ page.title }} <small>Supporting tagline</small></h1>
+  <h1>{{ page.title }} <small>Bobby Powers</small></h1>
 </div>
 
 <div class="row">
   <div class="span8">
+      <p>{{ page.date | date_to_long_string }}</p>
+
     {{ content }}
     <hr>
     <div class="pagination">
