@@ -5,32 +5,10 @@ tagline: Linux, Go, coffee
 ---
 {% include JB/setup %}
 
-Read [Jekyll Quick Start](http://jekyllbootstrap.com/usage/jekyll-quick-start.html)
+This is my internet-home, with potentially-interesting links to things
+I've done along with occasional weblog postings.
 
-Complete usage and documentation available at: [Jekyll Bootstrap](http://jekyllbootstrap.com)
-
-## Update Author Attributes
-
-In `_config.yml` remember to specify your own data:
-    
-    title : My Blog =)
-    
-    author :
-      name : Name Lastname
-      email : blah@email.test
-      github : username
-      twitter : username
-
-The theme should reference these variables whenever needed.
-    
-## Sample Posts
-
-This blog contains sample posts which help stage pages and blog data.
-When you don't need the samples anymore just delete the `_posts/core-samples` folder.
-
-    $ rm -rf _posts/core-samples
-
-Here's a sample "posts list".
+## Recent Posts
 
 <ul class="posts">
   {% for post in site.posts %}
@@ -38,9 +16,73 @@ Here's a sample "posts list".
   {% endfor %}
 </ul>
 
-## To-Do
+## Projects
 
-This theme is still unfinished. If you'd like to be added as a contributor, [please fork](http://github.com/plusjade/jekyll-bootstrap)!
-We need to clean up the themes, make theme usage guides with theme-specific markup examples.
+- [seshcookie](https://github.com/bpowers/seshcookie) - http sessions
+  stored in encrypted cookies for Go.
 
+- [psm](https://github.com/bpowers/psm) - a Linux utility for RAM and
+  swap reporting.
 
+- [cnote](https://github.com/bpowers/cnote) - an HTTP-based music
+  indexing service written in C.
+
+- [lightswitch rave](https://github.com/bpowers/lightswitchrave) -
+  spiritual successor to cnote, written in Go.
+
+## Free Software
+
+I'm a believer in free software, and have contributed in (usually
+minor) ways to a variety of projects over the years - mostly to
+address issues that I've encountered.  I like to leave things better
+than how I found them.
+
+### Linux kernel
+
+I helped test and fixup the initial x32 pseudo-arch support in
+[00194b2e](https://github.com/torvalds/linux/commit/00194b2e845da29395ad00c13a884d9acb9306b5),
+[ce5f7a99](https://github.com/torvalds/linux/commit/ce5f7a99df87918b5be4618a9386213a8e9a7146),
+and
+[f044db4c](https://github.com/torvalds/linux/commit/f044db4cb4bf16893812d35b5fbeaaf3e30c9215).
+[f75a8df3](https://github.com/torvalds/linux/commit/f75a8df3bd6466e29a4e40b86b2cfc96fe06d328)
+and
+[10db4e1e](https://github.com/torvalds/linux/commit/10db4e1e4e9a910a26b94045660e5ba7e7c71419)
+address spurious and actual warnings emitted during kernel builds.
+
+### Git
+
+I found and fixed some issues with `git diff --no-index` in
+[176a3354](https://github.com/git/git/commit/176a33542eddc6e319bfef4ca726813ce0b9af55)
+and
+[f3999e03](https://github.com/git/git/commit/f3999e03274df6b98a98a32912f5e171d6eea35f).
+
+### Go language
+
+I've authored a number of small changes, addressing issues in HTTP
+headers
+([235bd4eb543e](https://code.google.com/p/go/source/detail?r=)), JSON
+support
+([233ff5d46b3d](https://code.google.com/p/go/source/detail?r=233ff5d46b3d)),
+gob
+([7f39a0541e03](https://code.google.com/p/go/source/detail?r=7f39a0541e03)),
+and the build system
+([5a1c75805f59](https://code.google.com/p/go/source/detail?r=5a1c75805f59),
+[4f0d27dab290](https://code.google.com/p/go/source/detail?r=4f0d27dab290),
+[7d0f321ea87c](https://code.google.com/p/go/source/detail?r=7d0f321ea87c)),
+along with a nice little performance hack in the time package
+([d9e4f47ae341](https://code.google.com/p/go/source/detail?r=d9e4f47ae341)).
+
+### OLPC
+
+Once upon a time I was an intern with (and subsequently a community
+contributor to) [OLPC](http://laptop.org).  I helped with some
+[bugs](http://dev.laptop.org/ticket/6797) that had cropped up, worked
+on a (sadly unfinished) [activity named
+Model](http://wiki.laptop.org/go/Model) to enable students to do
+system dynamics modeling on the XOs, and [rewriting the boot animation
+in C](http://permalink.gmane.org/gmane.linux.laptop.olpc.devel/22884),
+speeding up boot time by 12 seconds.
+
+## Employment
+
+I'm currently happily employed at [SocialCode](http://socialcode.com).
