@@ -1,7 +1,7 @@
 ---
 layout: page
-title: Hello World!
-tagline: Supporting tagline
+title: Bobby Powers
+tagline: Linux, Go, coffee
 ---
 {% include JB/setup %}
 
