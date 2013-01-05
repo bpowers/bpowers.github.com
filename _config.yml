@@ -9,7 +9,7 @@ pygments: true
 # Themes are encouraged to use these universal variables 
 # so be sure to set them if your theme uses them.
 #
-title : Bobby Powers
+title : $ man 7 shipping-code
 tagline: Linux, Go, coffee
 author :
   name : Bobby Powers
