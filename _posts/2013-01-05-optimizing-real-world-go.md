@@ -228,12 +228,35 @@ individually lower - parallelism introduces locking, synchronization,
 and memory overhead (note the decrease in pagefaults), but in this
 case it's worth it.
 
-Now we have a performance baseline, and can start improving.
+Now we have a performance baseline, and can start improving. We use
+the go runtime's built in CPU and memory profiling support, coupled
+with the pprof tool to dig into the details of where we're spending
+our time:
+
+    $ go build && sudo ./psm -cpuprofile=cpuprof.1
+    ...
+    $ go tool pprof ./psm cpuprof.1
+    (pprof) web
+    Total: 81 samples
+    Loading web page file:////tmp/pprof31371.0.svg
+
+There are several ways to explore pprof data.  One of the easiest is
+the graphviz-dependent `web` command, which pops up an SVG in your
+browser:
+
+<center><img src="/images/pprof_1.png" width="336" height="337" /></center>
+
+Cool, so 93% of our time is spent in `procMem` where we total each
+process's memory usage, and most of that is in turn spent in the
+`splitSpaces` utility function.  Looks like a good place to start.
 
 ### splitSpaces
 
 Each line in `/proc/$PID/smaps` has several columns with an arbitrary
-number of spaces between them.  To review, splitSpaces is:
+number of spaces between them.  Neither the bytes or the strings
+package have Split function that will ignore all spaces between words,
+so I threw my own `splitSpaces` together.  The initial implementation
+was pretty naiive:
 
 {% highlight go %}
 func splitSpaces(b []byte) [][]byte {
@@ -248,29 +271,12 @@ func splitSpaces(b []byte) [][]byte {
 }
 {% endhighlight %}
 
-What does pprof have to say?
-
-    $ sudo ./psm -cpuprofile=cpuprof.1
-    ...
-    $ go tool pprof ./psm cpuprof.1
-    (pprof) web 
-    Total: 81 samples
-    Loading web page file:////tmp/pprof31371.0.sv
-
-There are several ways to explore pprof data.  One of the easiest is
-the graphviz-dependent `web` command, which displays an SVG in your
-browser:
-
-<center><img src="/images/pprof_1.png" width="336" height="337" /></center>
-
-Damn.  So 93% of our time is spent in `procMem` (where we total each
-process's memory usage), most of that time is in the `splitSpaces`
-utility function.  I call `splitSpaces` for each line in
-`/proc/$PID/smaps`.  I had a feeling it was inefficient, but didn't
-think it was _that_ bad - of all the (83) times the Go pprof thread
-woke up to record data, 47 of them were in `splitSpaces`.  `bytes.SplitN` and
-`bytes.TrimSpace` let me quickly implement the thing, but they gotta
-go.  The first thing I came up with (v0.2) was:
+ I call `splitSpaces` for each line in `/proc/$PID/smaps`.  I had a
+feeling it was inefficient, but didn't think it was _that_ bad - of
+all the (83) times the Go pprof thread woke up to record data, 47 of
+them were in `splitSpaces`.  `bytes.SplitN` and `bytes.TrimSpace` let
+me quickly implement the thing, but they gotta go.  The first thing I
+came up with (v0.2) was:
 
 {% highlight go %}
 func splitSpaces(b []byte) [][]byte {
