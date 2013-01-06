@@ -104,8 +104,11 @@ quickly as possible.
 To make `psm` go faster, first I had to know how fast it was already
 going.  I cycled between three tools: the bash time builtin, the GNU
 [time(1)](http://linux.die.net/man/1/time) command, and go's
-[pprof](http://golang.org/misc/pprof/) tool.  I should also mention I
-did my testing on a Fedora 18 install, with the latest version of go's
-default branch installed.  In general there have been some nice
-improvements since go1 was released, but I didn't explicitly test go1
-vs go default.
+[pprof](http://golang.org/misc/pprof/) tool.  There is surprisingly
+little documentation about bash's time, but I assure you it exists
+(`time_command` in [bash 4.2](http://ftp.gnu.org/gnu/bash/)'s
+`execute_cmd.c`) - I used it because it provides an extra decimal of
+precision over `time(1)`. I should also mention I did my testing on a
+Fedora 18 install, with the latest version of go's default branch
+installed.  In general there have been some nice improvements since
+go1 was released, but I didn't explicitly test go1 vs go default.
