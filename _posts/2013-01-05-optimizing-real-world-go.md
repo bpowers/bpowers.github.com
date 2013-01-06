@@ -202,3 +202,60 @@ and memory overhead (note the decrease in pagefaults), but in this
 case it's worth it.
 
 Now we have a performance baseline, and can start improving.
+
+### splitSpaces
+
+`/proc/$PID/smaps` contains a number of entries like:
+
+    7fff6b915000-7fff6b937000 rw-p 00000000 00:00 0                          [stack]
+    Size:                140 kB
+    Rss:                  12 kB
+    Pss:                  12 kB
+    Shared_Clean:          0 kB
+    Shared_Dirty:          0 kB
+    pPrivate_Clean:         0 kB
+    Private_Dirty:        12 kB
+    Referenced:           12 kB
+    Anonymous:            12 kB
+    AnonHugePages:         0 kB
+    Swap:                  0 kB
+    KernelPageSize:        4 kB
+    MMUPageSize:           4 kB
+    Locked:                0 kB
+    VmFlags: rd wr mr mw me gd ac 
+
+
+What does pprof have to say?
+
+    $ sudo ./psm -cpuprofile=cpuprof.1
+    ...
+    $ go tool pprof ./psm cpuprof.1
+    (pprof) web 
+    Total: 81 samples
+    Loading web page file:////tmp/pprof31371.0.sv
+
+There are several ways to explore pprof data.  One of the easiest is
+the graphviz-dependent `web` command, which displays an SVG in your
+browser:
+
+<center><img src="/images/pprof_1.png" width="336" height="337" /></center>
+
+Damn.  So 93% of our time is spent in `procMem` (where we total each
+process's memory usage), most of that time is in the `splitSpaces`
+utility function.  I call `splitSpaces` for each line in
+`/proc/$PID/smaps`.  I had a feeling it was inefficient, but didn't
+think it was _that_ bad.  To review, splitSpaces is:
+
+    func splitSpaces(b []byte) [][]byte {
+    	res := make([][]byte, 0, 6)
+    	s := bytes.SplitN(b, []byte{' '}, 2)
+    	for len(s) > 1 {
+    		res = append(res, s[0])
+    		s = bytes.SplitN(bytes.TrimSpace(s[1]), []byte{' '}, 2)
+    	}
+    	res = append(res, s[0])
+    	return res
+    }
+
+`bytes.SplitN` and `bytes.TrimSpace` let me quickly implement the
+thing, but they gotta go.
