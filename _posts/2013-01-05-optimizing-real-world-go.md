@@ -271,12 +271,18 @@ func splitSpaces(b []byte) [][]byte {
 }
 {% endhighlight %}
 
- I call `splitSpaces` for each line in `/proc/$PID/smaps`.  I had a
-feeling it was inefficient, but didn't think it was _that_ bad - of
-all the (83) times the Go pprof thread woke up to record data, 47 of
-them were in `splitSpaces`.  `bytes.SplitN` and `bytes.TrimSpace` let
-me quickly implement the thing, but they gotta go.  The first thing I
-came up with (v0.2) was:
+`splitSpaces` is called for each line in `/proc/$PID/smaps`.  How many
+lines are there?  On my laptop:
+
+    [root@fina /]# cat /proc/**/smaps | wc
+     406608 1370315 13109167
+
+Okay, so 400k lines of text, totaling 12 MB.  Of all the (83) times
+the Go pprof thread woke up to record data about `psm`, 47 of them
+were in `splitSpaces`.  `bytes.SplitN` and `bytes.TrimSpace` let me
+quickly implement the thing, but my usage of them is too inefficient.
+I racked my brain, and the next thing I came up with
+([v0.2](https://github.com/bpowers/psm/tree/v0.2)) was:
 
 {% highlight go %}
 func splitSpaces(b []byte) [][]byte {
@@ -305,16 +311,26 @@ func splitSpaces(b []byte) [][]byte {
  }
 {% endhighlight %}
 
-What does pprof have to say?
+
+This function was pretty mind-numbingly complicated with its doubly
+nested loops and conditional rewind (I ended up adding unit tests to
+make sure it was working correctly), but is it faster?
 
 <center><img src="/images/pprof_2.png" width="647" height="198" /></center>
 
-All right!  `splitSpaces` is down from 47 to 13, a 3.6× improvement.
+All right!  So, yes, `splitSpaces` is down from 47 to 13, a 3.6×
+improvement.  A big part of this improvement came when I
+[switched](https://github.com/bpowers/psm/commit/710a0731919b75bc2c1a368213c76c6c266c3b6a)
+from calling `unicode.IsSpace()` to checking `b[i] == 0` directly.  I
+made a mental note to come up with something more sane for
+splitSpaces, but for now lets move onto other low hanging fruit.
+
 Now, 38 of `procMem`'s samples are in `bufio.Reader.ReadLine()`, and
 30 of those 38 samples are in `syscall.Syscall()` itself.  That means
 that 79% of the runtime of `ReadLine()` is simply spent waiting for
-smaps data to become ready from the kernel.  Seems like it is time to
-move onto lower hanging fruit.  9 samples were spent in
+smaps data to become ready from the kernel.  Not much I can change in
+my userspace program to get around that, so lets move on.  The next
+biggest user of CPU time was the 9 samples spent in
 `runtime.slicebytetostring()` - the routine called for code like
 `string(someByteSlice)`.
 
@@ -326,7 +342,6 @@ line we're on:
 func procMem(pid int) (pss float64, shared, priv, swap uint64, err error) {
 	...
 	ty := string(pieces[0])
-	var v uint64
 	switch ty {
 	case "Pss:":
 		...
@@ -336,8 +351,26 @@ func procMem(pid int) (pss float64, shared, priv, swap uint64, err error) {
 }
 {% endhighlight %}
 
-The second is when we know we have an interesting piece of data and
-need to convert it from \[\]byte to an int:
+I like how clean switch statements look, but its a little unnecessary
+to do ~400k malloc + memcpy's (one for every line in smaps) just to
+compare some bytes.  This should remove that overhead:
+
+{% highlight go %}
+var tyPss = []byte("Pss:")
+func procMem(pid int) (pss float64, shared, priv, swap uint64, err error) {
+	...
+	ty := pieces[0]
+	if bytes.Equal(ty, tyPss) {
+		...
+	...
+	}
+	...
+}
+{% endhighlight %}
+
+The other place in `procMem` where `slicebytetostring` is called is
+when we need to convert a `[]byte` field to an integer.  The routines
+in `strconv` only accept string arguments, so we must convert:
 
 {% highlight go %}
 case "Swap:":
@@ -350,9 +383,15 @@ case "Swap:":
 }
 {% endhighlight %}
 
-Lets get rid of both of these conversions.
-
-FIXME: esplain.
+Unfortunately, the only way I could see to get around this was to fork
+(copy/paste) the ParseInt function from strconv, and change its
+declaration to accept a `[]byte` argument.  I copied the file in with
+[33d7fe8a](https://github.com/bpowers/psm/commit/33d7fe8a286b37859501bb06450a58f499d233c8),
+and modified it in
+[77e0408f](https://github.com/bpowers/psm/commit/77e0408f812b2e5056b4fe06be82654985b9e040).
+I was on a roll at that point, so that second commit also removes a
+O(n) string search and replaces it with an O(1) length check for
+whether an smaps line should be skipped.
 
 The result?
 
