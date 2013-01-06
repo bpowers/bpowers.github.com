@@ -207,7 +207,7 @@ Now we have a performance baseline, and can start improving.
 
 `/proc/$PID/smaps` contains a number of entries like:
 
-    7fff6b915000-7fff6b937000 rw-p 00000000 00:00 0                          [stack]
+    7fff6b915000-7fff6b937000 rw-p 00000000 00:00 0                  [stack]
     Size:                140 kB
     Rss:                  12 kB
     Pss:                  12 kB
