@@ -87,6 +87,33 @@ usage:
 
 To try it out.
 
+### How does it work?
+
+Each running process on a Linux machine has a set of virtual-memory
+segments (or areas, known as VMAs).  Accessing an address outside of
+these VMAs results in a segment violation
+(SIGSEGV). `/proc/$PID/smaps` contains entries for each VMA, like so:
+
+    7fff6b915000-7fff6b937000 rw-p 00000000 00:00 0                  [stack]
+    Size:                140 kB
+    Rss:                  12 kB
+    Pss:                  12 kB
+    Shared_Clean:          0 kB
+    Shared_Dirty:          0 kB
+    Private_Clean:         0 kB
+    Private_Dirty:        12 kB
+    Referenced:           12 kB
+    Anonymous:            12 kB
+    AnonHugePages:         0 kB
+    Swap:                  0 kB
+    KernelPageSize:        4 kB
+    MMUPageSize:           4 kB
+    Locked:                0 kB
+    VmFlags: rd wr mr mw me gd ac 
+
+`psm` and `ps_mem.py` simply iterate through each process's
+`/proc/$PID/smaps` file, summing the Pss, Swap and Private_* fields.
+
 ## Make it fast!
 
 I
@@ -205,27 +232,8 @@ Now we have a performance baseline, and can start improving.
 
 ### splitSpaces
 
-`/proc/$PID/smaps` contains a number of entries like:
-
-    7fff6b915000-7fff6b937000 rw-p 00000000 00:00 0                  [stack]
-    Size:                140 kB
-    Rss:                  12 kB
-    Pss:                  12 kB
-    Shared_Clean:          0 kB
-    Shared_Dirty:          0 kB
-    Private_Clean:         0 kB
-    Private_Dirty:        12 kB
-    Referenced:           12 kB
-    Anonymous:            12 kB
-    AnonHugePages:         0 kB
-    Swap:                  0 kB
-    KernelPageSize:        4 kB
-    MMUPageSize:           4 kB
-    Locked:                0 kB
-    VmFlags: rd wr mr mw me gd ac 
-
-Each line has several columns that have an arbitrary number of spaces
-between them.  To review, splitSpaces is:
+Each line in `/proc/$PID/smaps` has several columns with an arbitrary
+number of spaces between them.  To review, splitSpaces is:
 
 {% highlight go %}
 func splitSpaces(b []byte) [][]byte {
@@ -323,7 +331,7 @@ func procMem(pid int) (pss float64, shared, priv, swap uint64, err error) {
 {% endhighlight %}
 
 The second is when we know we have an interesting piece of data and
-need to convert it from []byte to an int:
+need to convert it from \[\]byte to an int:
 
 {% highlight go %}
 case "Swap:":
