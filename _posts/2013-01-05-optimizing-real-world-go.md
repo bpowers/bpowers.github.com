@@ -9,7 +9,7 @@ This post is about some fun I had while putting together a small
 UNIX-y utility to measure RAM and swap usage -
 [psm](https://github.com/bpowers/psm).  While a small, simple program,
 I was able to half its runtime and decrease memory allocations by
-several orders of magnitude with the help of some standard go tools.
+two orders of magnitude with the help of some standard go tools.
 
 ## Background 
 
@@ -91,4 +91,21 @@ I
 taken years to develop the restraint to wait until I have something
 working before I try to make it faster.
 
-What I'm going to do is walk through my thought process and approach.
+I'm going to walk though my process and the tools I used with the
+remainder of this post.
+
+### Goal
+
+My objective was simple - make `psm` output its results and exit as
+quickly as possible.
+
+### Tools of the trade
+
+To make `psm` go faster, first I had to know how fast it was already
+going.  I cycled between three tools: the bash time builtin, the GNU
+[time(1)](http://linux.die.net/man/1/time) command, and go's
+[pprof](http://golang.org/misc/pprof/) tool.  I should also mention I
+did my testing on a Fedora 18 install, with the latest version of go's
+default branch installed.  In general there have been some nice
+improvements since go1 was released, but I didn't explicitly test go1
+vs go default.
