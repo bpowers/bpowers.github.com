@@ -8,7 +8,7 @@ tags : [go, golang]
 This post is about some fun I had while putting together a small
 Unix-y utility to measure RAM and swap usage -
 [psm](https://github.com/bpowers/psm).  While a small, simple program,
-I was able to decrease runtime by more than 2.5x while decreasing
+I was able to decrease runtime by more than 2.5× while decreasing
 memory allocations by two orders of magnitude, with the help of some
 standard go tools.
 
@@ -227,16 +227,18 @@ Now we have a performance baseline, and can start improving.
 Each line has several columns that have an arbitrary number of spaces
 between them.  To review, splitSpaces is:
 
-    func splitSpaces(b []byte) [][]byte {
-    	res := make([][]byte, 0, 6)
-    	s := bytes.SplitN(b, []byte{' '}, 2)
-    	for len(s) > 1 {
-    		res = append(res, s[0])
-    		s = bytes.SplitN(bytes.TrimSpace(s[1]), []byte{' '}, 2)
-    	}
-    	res = append(res, s[0])
-    	return res
-    }
+{% highlight go %}
+func splitSpaces(b []byte) [][]byte {
+	res := make([][]byte, 0, 6)
+	s := bytes.SplitN(b, []byte{' '}, 2)
+	for len(s) > 1 {
+		res = append(res, s[0])
+		s = bytes.SplitN(bytes.TrimSpace(s[1]), []byte{' '}, 2)
+	}
+	res = append(res, s[0])
+	return res
+}
+{% endhighlight %}
 
 What does pprof have to say?
 
@@ -257,5 +259,89 @@ Damn.  So 93% of our time is spent in `procMem` (where we total each
 process's memory usage), most of that time is in the `splitSpaces`
 utility function.  I call `splitSpaces` for each line in
 `/proc/$PID/smaps`.  I had a feeling it was inefficient, but didn't
-think it was _that_ bad.  `bytes.SplitN` and `bytes.TrimSpace` let me
-quickly implement the thing, but they gotta go.
+think it was _that_ bad - of all the (83) times the Go pprof thread
+woke up to record data, 47 of them were in `splitSpaces`.  `bytes.SplitN` and
+`bytes.TrimSpace` let me quickly implement the thing, but they gotta
+go.  The first thing I came up with (v0.2) was:
+
+{% highlight go %}
+func splitSpaces(b []byte) [][]byte {
+       res := make([][]byte, 0, 6) // 6 is empirically derived
+       start, i := 0, 0
+       lenB := len(b)
+       for i = 0; i < lenB; i++ {
+               // fast forward past any spaces
+               for i < lenB-1 && b[i] == ' ' {
+                       i++
+                       start = i
+               }
+               for i < lenB-1 && b[i] != ' ' {
+                       i++
+               }
+               if i > start {
+                       // we sometimes have to rewind
+                       if i < lenB-1 && b[i] == ' ' {
+                               i--
+                       }
+                       res = append(res, b[start:i+1])
+                       start = i + 1
+               }
+        }
+        return res
+ }
+{% endhighlight %}
+
+What does pprof have to say?
+
+<center><img src="/images/pprof_2.png" width="647" height="198" /></center>
+
+All right!  `splitSpaces` is down from 47 to 13, a 3.6× improvement.
+Now, 38 of `procMem`'s samples are in `bufio.Reader.ReadLine()`, and
+30 of those 38 samples are in `syscall.Syscall()` itself.  That means
+that 79% of the runtime of `ReadLine()` is simply spent waiting for
+smaps data to become ready from the kernel.  Seems like it is time to
+move onto lower hanging fruit.  9 samples were spent in
+`runtime.slicebytetostring()` - the routine called for code like
+`string(someByteSlice)`.
+
+There are 2 places in `procMem()` where we convert byte slices to
+strings.  The fist is right before we try to figure out what type of
+line we're on:
+
+{% highlight go %}
+func procMem(pid int) (pss float64, shared, priv, swap uint64, err error) {
+	...
+	ty := string(pieces[0])
+	var v uint64
+	switch ty {
+	case "Pss:":
+		...
+	...
+	}
+	...
+}
+{% endhighlight %}
+
+The second is when we know we have an interesting piece of data and
+need to convert it from []byte to an int:
+
+{% highlight go %}
+case "Swap:":
+	v, err = strconv.ParseInt(string(pieces[1]), 10, 64)
+	if err != nil {
+		err = fmt.Errorf("Atoi(%s): %s", string(pieces[1]), err)
+		return
+	}
+	swap += v
+}
+{% endhighlight %}
+
+Lets get rid of both of these conversions.
+
+FIXME: esplain.
+
+The result?
+
+<center><img src="/images/pprof_3.png" width="613" height="213" /></center>
+
+Much better!
