@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Bobby Powers
-tagline: Linux, Go, coffee
+tagline: Linux, Go, coffee, system dynamics
 ---
 {% include JB/setup %}
 
@@ -88,6 +88,11 @@ speeding up boot time by 12 seconds.
 I love coffee.  Eventually I will expand on that, but in the mean time
 feel free to corner me in real life to discuss coffee, ideally over a
 cup of coffee.
+
+## System dynamics
+
+I studied system dynamics in [school](http://www.uib.no/rg/dynamics).
+I even wrote a nice thesis on how you could neatly [apply object-oriented programming](/thesis.pdf) to the field.
 
 ## Employment
 
