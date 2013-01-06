@@ -213,7 +213,7 @@ Now we have a performance baseline, and can start improving.
     Pss:                  12 kB
     Shared_Clean:          0 kB
     Shared_Dirty:          0 kB
-    pPrivate_Clean:         0 kB
+    Private_Clean:         0 kB
     Private_Dirty:        12 kB
     Referenced:           12 kB
     Anonymous:            12 kB
@@ -224,6 +224,19 @@ Now we have a performance baseline, and can start improving.
     Locked:                0 kB
     VmFlags: rd wr mr mw me gd ac 
 
+Each line has several columns that have an arbitrary number of spaces
+between them.  To review, splitSpaces is:
+
+    func splitSpaces(b []byte) [][]byte {
+    	res := make([][]byte, 0, 6)
+    	s := bytes.SplitN(b, []byte{' '}, 2)
+    	for len(s) > 1 {
+    		res = append(res, s[0])
+    		s = bytes.SplitN(bytes.TrimSpace(s[1]), []byte{' '}, 2)
+    	}
+    	res = append(res, s[0])
+    	return res
+    }
 
 What does pprof have to say?
 
@@ -244,18 +257,5 @@ Damn.  So 93% of our time is spent in `procMem` (where we total each
 process's memory usage), most of that time is in the `splitSpaces`
 utility function.  I call `splitSpaces` for each line in
 `/proc/$PID/smaps`.  I had a feeling it was inefficient, but didn't
-think it was _that_ bad.  To review, splitSpaces is:
-
-    func splitSpaces(b []byte) [][]byte {
-    	res := make([][]byte, 0, 6)
-    	s := bytes.SplitN(b, []byte{' '}, 2)
-    	for len(s) > 1 {
-    		res = append(res, s[0])
-    		s = bytes.SplitN(bytes.TrimSpace(s[1]), []byte{' '}, 2)
-    	}
-    	res = append(res, s[0])
-    	return res
-    }
-
-`bytes.SplitN` and `bytes.TrimSpace` let me quickly implement the
-thing, but they gotta go.
+think it was _that_ bad.  `bytes.SplitN` and `bytes.TrimSpace` let me
+quickly implement the thing, but they gotta go.
