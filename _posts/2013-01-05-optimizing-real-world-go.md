@@ -74,7 +74,8 @@ usage:
  DC; the rest of my time has been spent on some small cleanups,
  documentation and packaging.  The [github
  page](https://github.com/bpowers/psm) for `psm` has installation
- instructions, but if you're on Ubuntu 12.04 you can simply do:
+ instructions, but for brevity if you're on Ubuntu 12.04 you can
+ simply do:
 
     sudo apt-get install python-software-properties # for apt-add-repository
     sudo add-apt-repository ppa:bobbypowers/psm
