@@ -92,7 +92,9 @@ cup of coffee.
 ## System dynamics
 
 I studied system dynamics in [school](http://www.uib.no/rg/dynamics).
-I even wrote a nice thesis on how you could neatly [apply object-oriented programming](/thesis.pdf) to the field.
+I even wrote a nice thesis on how you could neatly [apply
+object-oriented programming](/thesis.pdf) to modeling, as a method of
+reducing complexity.
 
 ## Employment
 
