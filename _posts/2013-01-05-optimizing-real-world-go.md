@@ -250,7 +250,7 @@ Cool, so 93% of our time is spent in `procMem` where we total each
 process's memory usage, and most of that is in turn spent in the
 `splitSpaces` utility function.  Looks like a good place to start.
 
-### splitSpaces
+### Digging in
 
 Each line in `/proc/$PID/smaps` has several columns with an arbitrary
 number of spaces between them.  Neither the bytes or the strings
@@ -393,8 +393,59 @@ I was on a roll at that point, so that second commit also removes a
 O(n) string search and replaces it with an O(1) length check for
 whether an smaps line should be skipped.
 
-The result?
+The results?
 
-<center><img src="/images/pprof_3.png" width="613" height="213" /></center>
+<center><img src="/images/pprof_3.png" width="474" height="207" /></center>
 
-Much better!
+    0.24user 0.28system 0:00.17elapsed 292%CPU (0avgtext+0avgdata 5048maxresident)k
+    0inputs+8outputs (0major+941minor)pagefaults 0swaps
+
+    real	0m0.186s
+    user	0m0.246s
+    sys	0m0.285s
+
+Much better! We've gotten more than twice as fast.  The last thing
+left to do is see if we can improve `splitSpaces`.  I played around
+with that for a while, even creating a
+[micro-benchmark](https://github.com/bpowers/psm/commit/6f8835ee9ab2516724a83e2de8956dcbea6ad1cf),
+but in this case the benchmark ended up not being very useful.  It was
+noisy, and techniques that improved overall runtime weren't
+necessarily reflected in the benchmark results.  The current version is:
+
+{% highlight go %}
+func splitSpaces(b []byte) [][]byte {
+	// most lines in smaps have the form "Swap: 4 kB", so
+	// preallocate the slice's array appropriately.
+	res := make([][]byte, 0, 3)
+	start := 0
+	for i := 0; i < len(b)-1; i++ {
+		if b[i] == ' ' {
+			start = i + 1
+		} else if b[i+1] == ' ' {
+			res = append(res, b[start:i+1])
+			start = i + 1
+		}
+	}
+	if start != len(b) && b[start] != ' ' {
+		res = append(res, b[start:])
+	}
+	return res
+}
+{% endhighlight %}
+
+And is ~ 9% faster than the the last runtime.
+
+<center><img src="/images/pprof_4.png" width="487" height="213" /></center>
+
+    0.26user 0.25system 0:00.16elapsed 319%CPU (0avgtext+0avgdata 5164maxresident)k
+    0inputs+8outputs (0major+906minor)pagefaults 0swaps
+
+    real	0m0.170s
+    user	0m0.266s
+    sys	0m0.258s
+
+## Memory usage
+
+Okay, what about memory usage?
+
+## Wrapping up
