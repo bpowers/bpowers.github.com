@@ -98,5 +98,4 @@ reducing complexity.
 
 ## Employment
 
-I'm currently happily employed at [SocialCode](http://socialcode.com),
-and have a [résumé](/bpowers-resume.pdf).
+I'm currently happily employed at [SocialCode](http://socialcode.com).
