@@ -256,10 +256,10 @@ between profiles, but number of samples is.
 ### Digging in
 
 Each line in `/proc/$PID/smaps` has several columns with an arbitrary
-number of spaces between them.  Neither the
-[bytes](http://golang.org/pkg/bytes/) or the
-[strings](http://golang.org/pkg/strings/) packages have a Split
-function that will return only words, so I threw my own `splitSpaces`
+number of spaces between them.  As donio from
+[HN](http://news.ycombinator.com/item?id=5019907) pointed out,
+`bytes.Fields` does what I am looking for.  At the time I wrote `psm`,
+I someohow completely overlooked that and threw my own `splitSpaces`
 together.  The initial implementation was pretty naive:
 
 {% highlight go %}
@@ -469,3 +469,11 @@ I love programming in go.  It provides an environment where I can
 quickly produce production-quality code with awesome auto-generated
 docs.  On top of that it provides easy, built-in tools for profiling,
 making optimization (even more) fun.
+
+UPDATE: I edited the part where I tried to claim that the Go standard
+library didn't have anything that worked like `splitSpaces`.
+`bytes.Fields` does indeed already exist, as [pointed
+out](http://news.ycombinator.com/item?id=5019907) on Hacker News.  I
+would still have come to the same conclusion - bytes.Fields is much
+slower than my final `splitSpaces` function due to its use of
+unicode.IsSpace (.249 seconds runtime vs .158, currently).
