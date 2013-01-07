@@ -5,11 +5,10 @@ tags : [go, golang]
 ---
 {% include JB/setup %}
 
-This post is about some fun I had while putting together a small
-Unix-y utility to measure RAM and swap usage -
-[psm](https://github.com/bpowers/psm).  While a small, simple program,
-I was able to decrease runtime by more than 2.5× while decreasing
-memory allocations by two orders of magnitude, with the help of some
+This is about some fun I had while putting together a small Unix-y
+utility to measure RAM and swap usage -
+[psm](https://github.com/bpowers/psm).  I was able to decrease runtime
+by more than 65% during a 3-hour train ride with the help of some
 standard go tools.
 
 ## Background 
@@ -188,7 +187,8 @@ repeat.  `$PROF_OPTS` is either `-cpuprofile=cpu.prof` or
 `-memprofile=mem.prof`.  Its not very useful to run both of them at
 once, unless you're looking to benchmark the `runtime/pprof` package
 itself.  The seemingly dual time invocation is awkward, but results in
-the most immediately useful info.  psm v0.1 results in:
+the most immediately useful info.  psm
+[v0.1](https://github.com/bpowers/psm/tree/v0.1) results in:
 
     #   2569.9                 0.0	TOTAL USED BY PROCESSES
     1.25user 0.34system 0:00.51elapsed 310%CPU (0avgtext+0avgdata 2792maxresident)k
@@ -446,6 +446,14 @@ And is ~ 9% faster than the the last runtime.
 
 ## Memory usage
 
-Okay, what about memory usage?
+I had trouble getting useful memory allocation info out of pprof apart
+from the side-effects it had on CPU profiles - like the
+`byteslicetostring()` discussion above.  `time(1)` consistently <= 5
+MB max resident memory, so it doesn't seem to be much of an issue yet.
 
 ## Wrapping up
+
+I love programming in go.  It provides an environment where I can
+quickly produce production-quality code with awesome auto-generated
+docs.  On top of that it provides easy, built-in tools for profiling,
+making optimization (even more) fun.
