@@ -98,4 +98,4 @@ reducing complexity.
 
 ## Employment
 
-I'm currently happily employed at [SocialCode](http://socialcode.com).
+I'm currently happily employed at [isee systems](http://www.iseesystems.com/).
