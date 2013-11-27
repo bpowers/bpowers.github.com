@@ -98,4 +98,6 @@ reducing complexity.
 
 ## Employment
 
-I'm currently happily employed at [isee systems](http://www.iseesystems.com/).
+I am currently between jobs.  Get in touch if you have something
+interesting; I am especially interested in staying in the system
+dynamics space.
