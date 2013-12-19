@@ -8,6 +8,8 @@ tagline: Linux, Go, coffee, system dynamics
 This is my internet-home, with potentially-interesting links to things
 I've done along with occasional weblog postings.
 
+# I'm doing a system dynamics [KickStarter](http://www.kickstarter.com/projects/1838712738/approachable-system-dynamics)!  Please check it out.
+
 ## Recent Posts
 
 <ul class="posts">
