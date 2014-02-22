@@ -5,9 +5,6 @@ tagline: Linux, Go, coffee, system dynamics
 ---
 {% include JB/setup %}
 
-# I'm doing a system dynamics [KickStarter](http://www.kickstarter.com/projects/1838712738/approachable-system-dynamics)!  Please check it out.
-
-
 This is my internet-home, with potentially-interesting links to things
 I've done along with occasional weblog postings.
 
@@ -102,6 +99,4 @@ reducing complexity.
 
 ## Employment
 
-I am currently between jobs.  Get in touch if you have something
-interesting; I am especially interested in staying in the system
-dynamics space.
+I am currently happy emplyed at [SocialCode](http://socialcode.com).
