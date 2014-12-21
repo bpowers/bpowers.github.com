@@ -25,7 +25,7 @@ I've done along with occasional weblog postings.
 - [seshcookie](https://github.com/bpowers/seshcookie) - http sessions
   stored in encrypted cookies for Go.
 
-- [psm](https://github.com/bpowers/psm) - a Linux utility for RAM and
+- [psm](https://github.com/bpowers/psm2) - a Linux utility for RAM and
   swap reporting.
 
 - [cnote](https://github.com/bpowers/cnote) - an HTTP-based music
