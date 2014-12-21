@@ -9,7 +9,7 @@ This is my internet-home, with potentially-interesting links to things
 I've done along with occasional weblog postings.
 
 
-## Recent Posts
+## Blog Posts
 
 <ul class="posts">
   {% for post in site.posts %}
