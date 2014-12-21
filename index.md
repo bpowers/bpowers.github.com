@@ -19,6 +19,9 @@ I've done along with occasional weblog postings.
 
 ## Selected Projects
 
+- [libsd](https://github.com/sdlabs/libsd) - System Dynamics
+  simulation engine in C.
+
 - [seshcookie](https://github.com/bpowers/seshcookie) - http sessions
   stored in encrypted cookies for Go.
 
