@@ -8,8 +8,10 @@ tagline: Linux, Go, coffee, system dynamics
 This is my internet-home, with potentially-interesting links to things
 I've done along with occasional weblog postings.
 
+Excitingly, September 2015 I am starting a graduate program in CS at [UMass
+Amherst](https://www.cs.umass.edu/)!
 
-## Blog Posts
+## Recent Posts
 
 <ul class="posts">
   {% for post in site.posts %}
@@ -36,7 +38,7 @@ I've done along with occasional weblog postings.
 
 ## Free Software
 
-I'm a believer in free software, and have contributed in (usually
+I use and support free software, having contributed in (usually
 minor) ways to a variety of projects over the years - mostly to
 address issues that I've encountered.  I like to leave things better
 than how I found them.
@@ -102,4 +104,6 @@ reducing complexity.
 
 ## Employment
 
-I am currently happy emplyed at [SocialCode](http://socialcode.com).
+I was most recently was a software architect at
+[SocialCode](http://socialcode.com).  I am currently pursuing a
+graduate education in CS full-time, focusing on systems.
