@@ -31,17 +31,17 @@
             <td class="headerValue">app.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">348</td>
-            <td class="headerCovTableEntry">396</td>
-            <td class="headerCovTableEntryMed">87.9 %</td>
+            <td class="headerCovTableEntry">497</td>
+            <td class="headerCovTableEntry">550</td>
+            <td class="headerCovTableEntryHi">90.4 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2014-12-20</td>
+            <td class="headerValue">2015-08-29</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">32</td>
-            <td class="headerCovTableEntry">32</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntry">37</td>
             <td class="headerCovTableEntryHi">100.0 %</td>
           </tr>
           <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
@@ -75,747 +75,1026 @@
 <span class="lineNum">      13 </span>            : 
 <span class="lineNum">      14 </span>            : typedef struct {
 <span class="lineNum">      15 </span>            :         Walker w;
-<span class="lineNum">      16 </span>            :         AModel *am;
+<span class="lineNum">      16 </span>            :         AVar *module;
 <span class="lineNum">      17 </span>            :         AVar *av;
 <span class="lineNum">      18 </span>            :         Node *curr;
 <span class="lineNum">      19 </span>            : } AVarWalker;
 <span class="lineNum">      20 </span>            : 
-<span class="lineNum">      21 </span>            : static int cmp_avar(const void *a_in, const void *b_in);
-<span class="lineNum">      22 </span>            : 
-<span class="lineNum">      23 </span>            : static double *sim_curr(SDSim *s);
-<span class="lineNum">      24 </span>            : static double *sim_next(SDSim *s);
+<span class="lineNum">      21 </span>            : typedef struct {
+<span class="lineNum">      22 </span>            :         const char *const name;
+<span class="lineNum">      23 </span>            :         Fn fn;
+<span class="lineNum">      24 </span>            : } FnDef;
 <span class="lineNum">      25 </span>            : 
-<span class="lineNum">      26 </span>            : static void calc(SDSim *s, double *data, Slice *l);
-<span class="lineNum">      27 </span>            : static void calc_stocks(SDSim *s, double *data, Slice *l);
-<span class="lineNum">      28 </span>            : 
-<span class="lineNum">      29 </span>            : static double svisit(SDSim *s, Node *n);
-<span class="lineNum">      30 </span>            : 
-<span class="lineNum">      31 </span>            : static AVarWalker *avar_walker_new(AModel *am, AVar *av);
-<span class="lineNum">      32 </span>            : static void avar_walker_ref(void *data);
-<span class="lineNum">      33 </span>            : static void avar_walker_unref(void *data);
-<span class="lineNum">      34 </span>            : static void avar_walker_start(void *data, Node *n);
-<span class="lineNum">      35 </span>            : static Walker *avar_walker_start_child(void *data, Node *n);
-<span class="lineNum">      36 </span>            : static void avar_walker_end_child(void *data, Node *);
+<span class="lineNum">      26 </span>            : static double rt_min(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+<span class="lineNum">      27 </span>            : static double rt_max(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+<span class="lineNum">      28 </span>            : static double rt_pulse(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : static double *sim_curr(SDSim *s);
+<span class="lineNum">      31 </span>            : static double *sim_next(SDSim *s);
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : static void calc(SDSim *s, double *data, Slice *l, bool initial);
+<span class="lineNum">      34 </span>            : static void calc_stocks(SDSim *s, double *data, Slice *l);
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : static double svisit(SDSim *s, Node *n, double dt, double time);
 <span class="lineNum">      37 </span>            : 
-<span class="lineNum">      38 </span>            : static const WalkerOps AVAR_WALKER_OPS = {
-<span class="lineNum">      39 </span>            :         .ref = avar_walker_ref,
-<span class="lineNum">      40 </span>            :         .unref = avar_walker_unref,
-<span class="lineNum">      41 </span>            :         .start = avar_walker_start,
-<span class="lineNum">      42 </span>            :         .start_child = avar_walker_start_child,
-<span class="lineNum">      43 </span>            :         .end_child = avar_walker_end_child,
-<span class="lineNum">      44 </span>            :         .end = NULL,
-<span class="lineNum">      45 </span>            : };
-<span class="lineNum">      46 </span>            : 
-<a name="47"><span class="lineNum">      47 </span>            : </a>
-<span class="lineNum">      48 </span>            : AVar *
-<span class="lineNum">      49 </span><span class="lineCov">         18 : avar(Var *v)</span>
-<span class="lineNum">      50 </span>            : {
-<span class="lineNum">      51 </span><span class="lineCov">         18 :         AVar *av = NULL;</span>
-<span class="lineNum">      52 </span>            :         int err;
-<span class="lineNum">      53 </span>            : 
-<span class="lineNum">      54 </span><span class="lineCov">         18 :         av = calloc(1, sizeof(*av));</span>
-<span class="lineNum">      55 </span><span class="lineCov">         18 :         if (!av)</span>
-<span class="lineNum">      56 </span><span class="lineNoCov">          0 :                 goto error;</span>
-<span class="lineNum">      57 </span>            : 
-<span class="lineNum">      58 </span><span class="lineCov">         18 :         if (v-&gt;eqn)</span>
-<span class="lineNum">      59 </span><span class="lineCov">         18 :                 av-&gt;src = strdup(v-&gt;eqn);</span>
-<span class="lineNum">      60 </span>            :         else
-<span class="lineNum">      61 </span><span class="lineNoCov">          0 :                 av-&gt;src = strdup(&quot;&quot;);</span>
-<span class="lineNum">      62 </span><span class="lineCov">         18 :         err = avar_eqn_parse(av);</span>
-<span class="lineNum">      63 </span><span class="lineCov">         18 :         if (err)</span>
-<span class="lineNum">      64 </span><span class="lineNoCov">          0 :                 goto error;</span>
-<span class="lineNum">      65 </span><span class="lineCov">         18 :         av-&gt;v = v;</span>
-<span class="lineNum">      66 </span><span class="lineCov">         18 :         av-&gt;is_const = av-&gt;node &amp;&amp; av-&gt;node-&gt;type == N_FLOATLIT;</span>
-<span class="lineNum">      67 </span>            : 
-<span class="lineNum">      68 </span><span class="lineCov">         18 :         return av;</span>
-<span class="lineNum">      69 </span>            : error:
-<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         printf(&quot;eqn parse failed for %s\n&quot;, v-&gt;name);</span>
-<span class="lineNum">      71 </span><span class="lineNoCov">          0 :         free(av);</span>
-<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         return NULL;</span>
-<span class="lineNum">      73 </span>            : }
-<a name="74"><span class="lineNum">      74 </span>            : </a>
-<span class="lineNum">      75 </span>            : AVarWalker *
-<span class="lineNum">      76 </span><span class="lineCov">         18 : avar_walker_new(AModel *am, AVar *av)</span>
-<span class="lineNum">      77 </span>            : {
-<span class="lineNum">      78 </span><span class="lineCov">         18 :         AVarWalker *w = calloc(1, sizeof(*w));</span>
-<span class="lineNum">      79 </span>            : 
-<span class="lineNum">      80 </span><span class="lineCov">         18 :         if (!w)</span>
-<span class="lineNum">      81 </span><span class="lineNoCov">          0 :                 return NULL;</span>
-<span class="lineNum">      82 </span>            : 
-<span class="lineNum">      83 </span><span class="lineCov">         18 :         w-&gt;w.ops = &amp;AVAR_WALKER_OPS;</span>
-<span class="lineNum">      84 </span><span class="lineCov">         18 :         avar_walker_ref(w);</span>
-<span class="lineNum">      85 </span><span class="lineCov">         18 :         w-&gt;av = av;</span>
-<span class="lineNum">      86 </span><span class="lineCov">         18 :         w-&gt;am = am;</span>
-<span class="lineNum">      87 </span>            : 
-<span class="lineNum">      88 </span><span class="lineCov">         18 :         return w;</span>
-<span class="lineNum">      89 </span>            : }
-<a name="90"><span class="lineNum">      90 </span>            : </a>
-<span class="lineNum">      91 </span>            : void
-<span class="lineNum">      92 </span><span class="lineCov">         51 : avar_walker_ref(void *data)</span>
-<span class="lineNum">      93 </span>            : {
-<span class="lineNum">      94 </span><span class="lineCov">         51 :         AVarWalker *w = data;</span>
-<span class="lineNum">      95 </span><span class="lineCov">         51 :         __sync_fetch_and_add(&amp;w-&gt;w.refcount, 1);</span>
-<span class="lineNum">      96 </span><span class="lineCov">         51 : }</span>
-<a name="97"><span class="lineNum">      97 </span>            : </a>
-<span class="lineNum">      98 </span>            : void
-<span class="lineNum">      99 </span><span class="lineCov">         51 : avar_walker_unref(void *data)</span>
-<span class="lineNum">     100 </span>            : {
-<span class="lineNum">     101 </span><span class="lineCov">         51 :         AVarWalker *w = data;</span>
-<span class="lineNum">     102 </span>            : 
-<span class="lineNum">     103 </span><span class="lineCov">         51 :         if (!w || __sync_sub_and_fetch(&amp;w-&gt;w.refcount, 1) != 0)</span>
-<span class="lineNum">     104 </span><span class="lineCov">         84 :                 return;</span>
-<span class="lineNum">     105 </span>            : 
-<span class="lineNum">     106 </span><span class="lineCov">         18 :         free(w);</span>
-<span class="lineNum">     107 </span>            : }
-<a name="108"><span class="lineNum">     108 </span>            : </a>
-<span class="lineNum">     109 </span>            : void
-<span class="lineNum">     110 </span><span class="lineCov">         33 : avar_walker_start(void *data, Node *n)</span>
-<span class="lineNum">     111 </span>            : {
-<span class="lineNum">     112 </span><span class="lineCov">         33 :         AVarWalker *vw = data;</span>
-<span class="lineNum">     113 </span>            :         AVar *dep;
-<span class="lineNum">     114 </span>            : 
-<span class="lineNum">     115 </span><span class="lineCov">         33 :         switch (n-&gt;type) {</span>
-<span class="lineNum">     116 </span>            :         case N_IDENT:
-<span class="lineNum">     117 </span><span class="lineCov">         14 :                 dep = resolve(vw-&gt;am, n-&gt;sval);</span>
-<span class="lineNum">     118 </span><span class="lineCov">         14 :                 if (!dep) {</span>
-<span class="lineNum">     119 </span><span class="lineNoCov">          0 :                         printf(&quot;resolve failed for %s\n&quot;, n-&gt;sval);</span>
-<span class="lineNum">     120 </span>            :                         // TODO: error
-<span class="lineNum">     121 </span><span class="lineCov">         33 :                         return;</span>
-<span class="lineNum">     122 </span>            :                 }
-<span class="lineNum">     123 </span><span class="lineCov">         14 :                 n-&gt;av = dep;</span>
-<span class="lineNum">     124 </span><span class="lineCov">         14 :                 slice_append(&amp;vw-&gt;av-&gt;direct_deps, dep);</span>
-<span class="lineNum">     125 </span><span class="lineCov">         14 :                 break;</span>
-<span class="lineNum">     126 </span>            :         case N_FLOATLIT:
-<span class="lineNum">     127 </span><span class="lineCov">         11 :                 n-&gt;fval = atof(n-&gt;sval);</span>
-<span class="lineNum">     128 </span><span class="lineCov">         11 :                 break;</span>
-<span class="lineNum">     129 </span>            :         default:
-<span class="lineNum">     130 </span><span class="lineCov">          8 :                 break;</span>
-<span class="lineNum">     131 </span>            :         }
-<span class="lineNum">     132 </span>            : }
-<a name="133"><span class="lineNum">     133 </span>            : </a>
-<span class="lineNum">     134 </span>            : Walker *
-<span class="lineNum">     135 </span><span class="lineCov">         15 : avar_walker_start_child(void *data, Node *n)</span>
-<span class="lineNum">     136 </span>            : {
-<span class="lineNum">     137 </span><span class="lineCov">         15 :         Walker *w = data;</span>
-<span class="lineNum">     138 </span><span class="lineCov">         15 :         w-&gt;ops-&gt;ref(w);</span>
-<span class="lineNum">     139 </span>            : 
-<span class="lineNum">     140 </span><span class="lineCov">         15 :         return w;</span>
-<span class="lineNum">     141 </span>            : }
-<a name="142"><span class="lineNum">     142 </span>            : </a>
-<span class="lineNum">     143 </span>            : void
-<span class="lineNum">     144 </span><span class="lineCov">         15 : avar_walker_end_child(void *data, Node *n)</span>
-<span class="lineNum">     145 </span>            : {
-<span class="lineNum">     146 </span><span class="lineCov">         15 : }</span>
-<a name="147"><span class="lineNum">     147 </span>            : </a>
-<span class="lineNum">     148 </span>            : int
-<span class="lineNum">     149 </span><span class="lineCov">         18 : avar_init(AVar *av, AModel *am)</span>
-<span class="lineNum">     150 </span>            : {
-<span class="lineNum">     151 </span>            :         AVarWalker *w;
-<span class="lineNum">     152 </span>            :         bool ok;
+<span class="lineNum">      38 </span>            : static AVar *module(SDProject *p, AVar *parent, SDModel *model, Var *module);
+<span class="lineNum">      39 </span>            : static int module_compile(AVar *module);
+<span class="lineNum">      40 </span>            : static int module_assign_offsets(AVar *module, int *offset);
+<span class="lineNum">      41 </span>            : static int module_get_varnames(AVar *module, const char **result, size_t max);
+<span class="lineNum">      42 </span>            : static void module_clear_visited(AVar *module);
+<span class="lineNum">      43 </span>            : static int module_sort_runlists(AVar *module);
+<span class="lineNum">      44 </span>            : static int module_add_to_runlists(AVar *module, AVar *av);
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : static const char *avar_qual_name(AVar *av);
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static AVarWalker *avar_walker_new(AVar *module, AVar *av);
+<span class="lineNum">      49 </span>            : static void avar_walker_ref(void *data);
+<span class="lineNum">      50 </span>            : static void avar_walker_unref(void *data);
+<span class="lineNum">      51 </span>            : static void avar_walker_start(void *data, Node *n);
+<span class="lineNum">      52 </span>            : static Walker *avar_walker_start_child(void *data, Node *n);
+<span class="lineNum">      53 </span>            : static void avar_walker_end_child(void *data, Node *);
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : static const WalkerOps AVAR_WALKER_OPS = {
+<span class="lineNum">      56 </span>            :         .ref = avar_walker_ref,
+<span class="lineNum">      57 </span>            :         .unref = avar_walker_unref,
+<span class="lineNum">      58 </span>            :         .start = avar_walker_start,
+<span class="lineNum">      59 </span>            :         .start_child = avar_walker_start_child,
+<span class="lineNum">      60 </span>            :         .end_child = avar_walker_end_child,
+<span class="lineNum">      61 </span>            :         .end = NULL,
+<span class="lineNum">      62 </span>            : };
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : static const FnDef RT_FNS[] = {
+<span class="lineNum">      65 </span>            :         {&quot;pulse&quot;, rt_pulse},
+<span class="lineNum">      66 </span>            :         {&quot;min&quot;, rt_min},
+<span class="lineNum">      67 </span>            :         {&quot;max&quot;, rt_max},
+<span class="lineNum">      68 </span>            : };
+<span class="lineNum">      69 </span>            : static const size_t RT_FNS_LEN = sizeof(RT_FNS)/sizeof(RT_FNS[0]);
+<a name="70"><span class="lineNum">      70 </span>            : </a>
+<span class="lineNum">      71 </span>            : AVar *
+<span class="lineNum">      72 </span><span class="lineCov">        100 : avar(AVar *parent, Var *v)</span>
+<span class="lineNum">      73 </span>            : {
+<span class="lineNum">      74 </span>            :         SDModel *model;
+<span class="lineNum">      75 </span>            :         AVar *av;
+<span class="lineNum">      76 </span>            :         int err;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span><span class="lineCov">        100 :         av = NULL;</span>
+<span class="lineNum">      79 </span><span class="lineCov">        100 :         err = 0;</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineCov">        100 :         if (v-&gt;type == VAR_MODULE) {</span>
+<span class="lineNum">      82 </span><span class="lineCov">          4 :                 model = sd_project_get_model(parent-&gt;model-&gt;file-&gt;project, v-&gt;name);</span>
+<span class="lineNum">      83 </span><span class="lineCov">          4 :                 if (!model)</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :                         goto error;</span>
+<span class="lineNum">      85 </span><span class="lineCov">          4 :                 av = module(parent-&gt;model-&gt;file-&gt;project, parent, model, v);</span>
+<span class="lineNum">      86 </span><span class="lineCov">          4 :                 if (av)</span>
+<span class="lineNum">      87 </span><span class="lineCov">          4 :                         av-&gt;v = v;</span>
+<span class="lineNum">      88 </span><span class="lineCov">          4 :                 return av;</span>
+<span class="lineNum">      89 </span>            :         }
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">         96 :         av = calloc(1, sizeof(*av));</span>
+<span class="lineNum">      92 </span><span class="lineCov">         96 :         if (!av)</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">      94 </span><span class="lineCov">         96 :         av-&gt;v = v;</span>
+<span class="lineNum">      95 </span><span class="lineCov">         96 :         av-&gt;parent = parent;</span>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineCov">         96 :         if (v-&gt;eqn)</span>
+<span class="lineNum">      98 </span><span class="lineCov">         88 :                 err = avar_eqn_parse(av);</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">         96 :         if (err)</span>
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     102 </span><span class="lineCov">         96 :         av-&gt;is_const = av-&gt;node &amp;&amp; av-&gt;node-&gt;type == N_FLOATLIT;</span>
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineCov">         96 :         return av;</span>
+<span class="lineNum">     105 </span>            : error:
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :         printf(&quot;eqn parse failed for %s\n&quot;, v-&gt;name);</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         free(av);</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     109 </span>            : }
+<a name="110"><span class="lineNum">     110 </span>            : </a>
+<span class="lineNum">     111 </span>            : const char *
+<span class="lineNum">     112 </span><span class="lineCov">         85 : avar_qual_name(AVar *av)</span>
+<span class="lineNum">     113 </span>            : {
+<span class="lineNum">     114 </span>            :         const char *parent;
+<span class="lineNum">     115 </span>            :         size_t parent_len, name_len;
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineCov">         85 :         if (av-&gt;qual_name)</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :                 return av-&gt;qual_name;</span>
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            :         // if we _are_ the root model, return &lt;main&gt;
+<span class="lineNum">     121 </span><span class="lineCov">         85 :         if (!av-&gt;parent)</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :                 return &quot;&lt;main&gt;&quot;;</span>
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :         // if we're in the root model, return the var's name
+<span class="lineNum">     125 </span><span class="lineCov">         85 :         if (av-&gt;parent-&gt;parent == NULL)</span>
+<span class="lineNum">     126 </span><span class="lineCov">         73 :                 return av-&gt;v-&gt;name;</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">         12 :         parent = avar_qual_name(av-&gt;parent);</span>
+<span class="lineNum">     129 </span><span class="lineCov">         12 :         if (!parent)</span>
+<span class="lineNum">     130 </span>            :                 // TODO(bp) handle ENOMEM
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     132 </span><span class="lineCov">         12 :         parent_len = strlen(parent);</span>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineCov">         12 :         name_len = strlen(av-&gt;v-&gt;name);</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineCov">         12 :         av-&gt;qual_name = malloc(parent_len + name_len + 2);</span>
+<span class="lineNum">     137 </span><span class="lineCov">         12 :         if (!av-&gt;qual_name)</span>
+<span class="lineNum">     138 </span>            :                 // TODO(bp) handle ENOMEM
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">         12 :         memcpy(av-&gt;qual_name, parent, parent_len);</span>
+<span class="lineNum">     142 </span><span class="lineCov">         12 :         av-&gt;qual_name[parent_len] = '.';</span>
+<span class="lineNum">     143 </span><span class="lineCov">         12 :         memcpy(&amp;av-&gt;qual_name[parent_len+1], av-&gt;v-&gt;name, name_len);</span>
+<span class="lineNum">     144 </span><span class="lineCov">         12 :         av-&gt;qual_name[parent_len+name_len+1] = '\0';</span>
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineCov">         12 :         return av-&gt;qual_name;</span>
+<span class="lineNum">     147 </span>            : }
+<a name="148"><span class="lineNum">     148 </span>            : </a>
+<span class="lineNum">     149 </span>            : AVarWalker *
+<span class="lineNum">     150 </span><span class="lineCov">         88 : avar_walker_new(AVar *module, AVar *av)</span>
+<span class="lineNum">     151 </span>            : {
+<span class="lineNum">     152 </span><span class="lineCov">         88 :         AVarWalker *w = calloc(1, sizeof(*w));</span>
 <span class="lineNum">     153 </span>            : 
-<span class="lineNum">     154 </span>            :         // XXX: what to do for modules?
-<span class="lineNum">     155 </span>            : 
-<span class="lineNum">     156 </span><span class="lineCov">         18 :         w = avar_walker_new(am, av);</span>
-<span class="lineNum">     157 </span>            : 
-<span class="lineNum">     158 </span><span class="lineCov">         18 :         ok = node_walk(&amp;w-&gt;w, av-&gt;node);</span>
-<span class="lineNum">     159 </span><span class="lineCov">         18 :         if (!ok)</span>
-<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     154 </span><span class="lineCov">         88 :         if (!w)</span>
+<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                 return NULL;</span>
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span><span class="lineCov">         88 :         w-&gt;w.ops = &amp;AVAR_WALKER_OPS;</span>
+<span class="lineNum">     158 </span><span class="lineCov">         88 :         avar_walker_ref(w);</span>
+<span class="lineNum">     159 </span><span class="lineCov">         88 :         w-&gt;av = av;</span>
+<span class="lineNum">     160 </span><span class="lineCov">         88 :         w-&gt;module = module;</span>
 <span class="lineNum">     161 </span>            : 
-<span class="lineNum">     162 </span><span class="lineCov">         21 :         for (size_t i = 0; i &lt; av-&gt;v-&gt;inflows.len; i++) {</span>
-<span class="lineNum">     163 </span><span class="lineCov">          3 :                 char *in_name = av-&gt;v-&gt;inflows.elems[i];</span>
-<span class="lineNum">     164 </span><span class="lineCov">          3 :                 AVar *in = resolve(am, in_name);</span>
-<span class="lineNum">     165 </span><span class="lineCov">          3 :                 if (!in)</span>
-<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                         goto error;</span>
-<span class="lineNum">     167 </span><span class="lineCov">          3 :                 slice_append(&amp;av-&gt;inflows, in);</span>
-<span class="lineNum">     168 </span>            :         }
-<span class="lineNum">     169 </span><span class="lineCov">         21 :         for (size_t i = 0; i &lt; av-&gt;v-&gt;outflows.len; i++) {</span>
-<span class="lineNum">     170 </span><span class="lineCov">          3 :                 char *out_name = av-&gt;v-&gt;outflows.elems[i];</span>
-<span class="lineNum">     171 </span><span class="lineCov">          3 :                 AVar *out = resolve(am, out_name);</span>
-<span class="lineNum">     172 </span><span class="lineCov">          3 :                 if (!out)</span>
-<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                         goto error;</span>
-<span class="lineNum">     174 </span><span class="lineCov">          3 :                 slice_append(&amp;av-&gt;outflows, out);</span>
-<span class="lineNum">     175 </span>            :         }
+<span class="lineNum">     162 </span><span class="lineCov">         88 :         return w;</span>
+<span class="lineNum">     163 </span>            : }
+<a name="164"><span class="lineNum">     164 </span>            : </a>
+<span class="lineNum">     165 </span>            : void
+<span class="lineNum">     166 </span><span class="lineCov">        292 : avar_walker_ref(void *data)</span>
+<span class="lineNum">     167 </span>            : {
+<span class="lineNum">     168 </span><span class="lineCov">        292 :         AVarWalker *w = data;</span>
+<span class="lineNum">     169 </span><span class="lineCov">        292 :         __sync_fetch_and_add(&amp;w-&gt;w.refcount, 1);</span>
+<span class="lineNum">     170 </span><span class="lineCov">        292 : }</span>
+<a name="171"><span class="lineNum">     171 </span>            : </a>
+<span class="lineNum">     172 </span>            : void
+<span class="lineNum">     173 </span><span class="lineCov">        292 : avar_walker_unref(void *data)</span>
+<span class="lineNum">     174 </span>            : {
+<span class="lineNum">     175 </span><span class="lineCov">        292 :         AVarWalker *w = data;</span>
 <span class="lineNum">     176 </span>            : 
-<span class="lineNum">     177 </span><span class="lineCov">         18 :         avar_walker_unref(w);</span>
-<span class="lineNum">     178 </span>            : 
-<span class="lineNum">     179 </span><span class="lineCov">         18 :         return SD_ERR_NO_ERROR;</span>
-<span class="lineNum">     180 </span>            : error:
-<span class="lineNum">     181 </span><span class="lineNoCov">          0 :         avar_walker_unref(w);</span>
-<span class="lineNum">     182 </span><span class="lineNoCov">          0 :         return SD_ERR_UNSPECIFIED;</span>
-<span class="lineNum">     183 </span>            : }
-<a name="184"><span class="lineNum">     184 </span>            : </a>
-<span class="lineNum">     185 </span>            : void
-<span class="lineNum">     186 </span><span class="lineCov">         18 : avar_free(AVar *av)</span>
-<span class="lineNum">     187 </span>            : {
-<span class="lineNum">     188 </span><span class="lineCov">         18 :         if (!av)</span>
-<span class="lineNum">     189 </span><span class="lineCov">         18 :                 return;</span>
+<span class="lineNum">     177 </span><span class="lineCov">        292 :         if (!w || __sync_sub_and_fetch(&amp;w-&gt;w.refcount, 1) != 0)</span>
+<span class="lineNum">     178 </span><span class="lineCov">        204 :                 return;</span>
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">         88 :         free(w);</span>
+<span class="lineNum">     181 </span>            : }
+<a name="182"><span class="lineNum">     182 </span>            : </a>
+<span class="lineNum">     183 </span>            : void
+<span class="lineNum">     184 </span><span class="lineCov">        204 : avar_walker_start(void *data, Node *n)</span>
+<span class="lineNum">     185 </span>            : {
+<span class="lineNum">     186 </span><span class="lineCov">        204 :         AVarWalker *avw = data;</span>
+<span class="lineNum">     187 </span>            :         AVar *dep;
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineCov">        204 :         avw-&gt;curr = n;</span>
 <span class="lineNum">     190 </span>            : 
-<span class="lineNum">     191 </span><span class="lineCov">         18 :         free(av-&gt;src);</span>
-<span class="lineNum">     192 </span><span class="lineCov">         18 :         node_free(av-&gt;node);</span>
-<span class="lineNum">     193 </span><span class="lineCov">         18 :         free(av-&gt;direct_deps.elems);</span>
-<span class="lineNum">     194 </span><span class="lineCov">         18 :         free(av-&gt;all_deps.elems);</span>
-<span class="lineNum">     195 </span><span class="lineCov">         18 :         free(av-&gt;inflows.elems);</span>
-<span class="lineNum">     196 </span><span class="lineCov">         18 :         free(av-&gt;outflows.elems);</span>
-<span class="lineNum">     197 </span><span class="lineCov">         18 :         free(av);</span>
-<span class="lineNum">     198 </span>            : }
-<a name="199"><span class="lineNum">     199 </span>            : </a>
-<span class="lineNum">     200 </span>            : AModel *
-<span class="lineNum">     201 </span><span class="lineCov">          2 : amodel(SDModel *m)</span>
-<span class="lineNum">     202 </span>            : {
-<span class="lineNum">     203 </span><span class="lineCov">          2 :         AModel *am = NULL;</span>
-<span class="lineNum">     204 </span>            : 
-<span class="lineNum">     205 </span><span class="lineCov">          2 :         am = calloc(1, sizeof(*am));</span>
-<span class="lineNum">     206 </span><span class="lineCov">          2 :         if (!am)</span>
-<span class="lineNum">     207 </span><span class="lineNoCov">          0 :                 goto error;</span>
-<span class="lineNum">     208 </span><span class="lineCov">          2 :         am-&gt;model = m;</span>
-<span class="lineNum">     209 </span>            : 
-<span class="lineNum">     210 </span><span class="lineCov">         20 :         for (size_t i = 0; i &lt; m-&gt;vars.len; i++) {</span>
-<span class="lineNum">     211 </span><span class="lineCov">         18 :                 AVar *av = avar(m-&gt;vars.elems[i]);</span>
-<span class="lineNum">     212 </span><span class="lineCov">         18 :                 if (!av)</span>
-<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                         goto error;</span>
-<span class="lineNum">     214 </span><span class="lineCov">         18 :                 slice_append(&amp;am-&gt;avars, av);</span>
-<span class="lineNum">     215 </span>            : 
-<span class="lineNum">     216 </span><span class="lineCov">         18 :                 if (av-&gt;v-&gt;type == VAR_STOCK) {</span>
-<span class="lineNum">     217 </span><span class="lineCov">          3 :                         slice_append(&amp;am-&gt;initials, av);</span>
-<span class="lineNum">     218 </span><span class="lineCov">          3 :                         slice_append(&amp;am-&gt;stocks, av);</span>
-<span class="lineNum">     219 </span>            :                 } else {
-<span class="lineNum">     220 </span><span class="lineCov">         15 :                         slice_append(&amp;am-&gt;initials, av);</span>
-<span class="lineNum">     221 </span><span class="lineCov">         15 :                         if (av-&gt;is_const)</span>
-<span class="lineNum">     222 </span><span class="lineCov">          7 :                                 slice_append(&amp;am-&gt;stocks, av);</span>
-<span class="lineNum">     223 </span>            :                         else
-<span class="lineNum">     224 </span><span class="lineCov">          8 :                                 slice_append(&amp;am-&gt;flows, av);</span>
-<span class="lineNum">     225 </span>            :                 }
-<span class="lineNum">     226 </span>            :         }
-<span class="lineNum">     227 </span>            : 
-<span class="lineNum">     228 </span><span class="lineCov">          2 :         return am;</span>
-<span class="lineNum">     229 </span>            : error:
-<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         free(am);</span>
-<span class="lineNum">     231 </span><span class="lineNoCov">          0 :         return NULL;</span>
-<span class="lineNum">     232 </span>            : }
-<a name="233"><span class="lineNum">     233 </span>            : </a>
-<span class="lineNum">     234 </span>            : AVar *
-<span class="lineNum">     235 </span><span class="lineCov">         29 : resolve(AModel *am, const char *name)</span>
-<span class="lineNum">     236 </span>            : {
-<span class="lineNum">     237 </span><span class="lineCov">        164 :         for (size_t i = 0; i &lt; am-&gt;avars.len; i++) {</span>
-<span class="lineNum">     238 </span><span class="lineCov">        162 :                 AVar *av = am-&gt;avars.elems[i];</span>
-<span class="lineNum">     239 </span><span class="lineCov">        162 :                 if (strcmp(av-&gt;v-&gt;name, name) == 0)</span>
-<span class="lineNum">     240 </span><span class="lineCov">         27 :                         return av;</span>
-<span class="lineNum">     241 </span>            :         }
-<span class="lineNum">     242 </span>            : 
-<span class="lineNum">     243 </span><span class="lineCov">          2 :         return NULL;</span>
-<span class="lineNum">     244 </span>            : }
-<a name="245"><span class="lineNum">     245 </span>            : </a>
-<span class="lineNum">     246 </span>            : void
-<span class="lineNum">     247 </span><span class="lineCov">          2 : amodel_free(AModel *am)</span>
-<span class="lineNum">     248 </span>            : {
-<span class="lineNum">     249 </span><span class="lineCov">          2 :         if (!am)</span>
-<span class="lineNum">     250 </span><span class="lineCov">          2 :                 return;</span>
-<span class="lineNum">     251 </span>            : 
-<span class="lineNum">     252 </span><span class="lineCov">         20 :         for (size_t i = 0; i &lt; am-&gt;avars.len; i++) {</span>
-<span class="lineNum">     253 </span><span class="lineCov">         18 :                 AVar *av = am-&gt;avars.elems[i];</span>
-<span class="lineNum">     254 </span><span class="lineCov">         18 :                 avar_free(av);</span>
-<span class="lineNum">     255 </span>            :         }
-<span class="lineNum">     256 </span><span class="lineCov">          2 :         free(am-&gt;avars.elems);</span>
-<span class="lineNum">     257 </span><span class="lineCov">          2 :         free(am-&gt;initials.elems);</span>
-<span class="lineNum">     258 </span><span class="lineCov">          2 :         free(am-&gt;flows.elems);</span>
-<span class="lineNum">     259 </span><span class="lineCov">          2 :         free(am-&gt;stocks.elems);</span>
-<span class="lineNum">     260 </span>            :         // we don't own any modules, just reference them.
-<span class="lineNum">     261 </span><span class="lineCov">          2 :         free(am-&gt;modules.elems);</span>
-<span class="lineNum">     262 </span><span class="lineCov">          2 :         free(am);</span>
-<span class="lineNum">     263 </span>            : }
-<a name="264"><span class="lineNum">     264 </span>            : </a>
-<span class="lineNum">     265 </span>            : int
-<span class="lineNum">     266 </span><span class="lineCov">         62 : cmp_avar(const void *a_in, const void *b_in)</span>
-<span class="lineNum">     267 </span>            : {
-<span class="lineNum">     268 </span><span class="lineCov">         62 :         const AVar *a = *(AVar *const *)a_in;</span>
-<span class="lineNum">     269 </span><span class="lineCov">         62 :         const AVar *b = *(AVar *const *)b_in;</span>
-<span class="lineNum">     270 </span><span class="lineCov">         62 :         int result = 0;</span>
-<span class="lineNum">     271 </span><span class="lineCov">        151 :         for (size_t i = 0; i &lt; b-&gt;all_deps.len; i++) {</span>
-<span class="lineNum">     272 </span><span class="lineCov">         93 :                 if (a == b-&gt;all_deps.elems[i]) {</span>
-<span class="lineNum">     273 </span><span class="lineCov">          4 :                         result = -1;</span>
-<span class="lineNum">     274 </span><span class="lineCov">          4 :                         break;</span>
-<span class="lineNum">     275 </span>            :                 }
-<span class="lineNum">     276 </span>            :         }
-<span class="lineNum">     277 </span><span class="lineCov">         62 :         if (result == 0) {</span>
-<span class="lineNum">     278 </span><span class="lineCov">        147 :                 for (size_t i = 0; i &lt; a-&gt;all_deps.len; i++) {</span>
-<span class="lineNum">     279 </span><span class="lineCov">         95 :                         if (b == a-&gt;all_deps.elems[i]) {</span>
-<span class="lineNum">     280 </span><span class="lineCov">          6 :                                 result = 1;</span>
-<span class="lineNum">     281 </span><span class="lineCov">          6 :                                 break;</span>
-<span class="lineNum">     282 </span>            :                         }
-<span class="lineNum">     283 </span>            :                 }
-<span class="lineNum">     284 </span>            :         }
-<span class="lineNum">     285 </span>            :         // order stocks last in initial list
-<span class="lineNum">     286 </span><span class="lineCov">         62 :         if (result == 0) {</span>
-<span class="lineNum">     287 </span><span class="lineCov">         52 :                 if (a-&gt;v-&gt;type == VAR_STOCK &amp;&amp; b-&gt;v-&gt;type != VAR_STOCK)</span>
-<span class="lineNum">     288 </span><span class="lineCov">          9 :                         result = 1;</span>
-<span class="lineNum">     289 </span><span class="lineCov">         43 :                 else if (a-&gt;v-&gt;type != VAR_STOCK &amp;&amp; b-&gt;v-&gt;type == VAR_STOCK)</span>
-<span class="lineNum">     290 </span><span class="lineCov">          2 :                         result = -1;</span>
-<span class="lineNum">     291 </span>            :         }
-<span class="lineNum">     292 </span><span class="lineCov">         62 :         return result;</span>
-<span class="lineNum">     293 </span>            : }
-<a name="294"><span class="lineNum">     294 </span>            : </a>
-<span class="lineNum">     295 </span>            : int
-<span class="lineNum">     296 </span><span class="lineCov">          2 : amodel_compile(AModel *am, int offset)</span>
-<span class="lineNum">     297 </span>            : {
-<span class="lineNum">     298 </span>            :         AVar *av;
-<span class="lineNum">     299 </span>            :         int err;
-<span class="lineNum">     300 </span>            : 
-<span class="lineNum">     301 </span><span class="lineCov">         20 :         for (size_t i = 0; i &lt; am-&gt;avars.len; i++) {</span>
-<span class="lineNum">     302 </span><span class="lineCov">         18 :                 av = am-&gt;avars.elems[i];</span>
-<span class="lineNum">     303 </span><span class="lineCov">         18 :                 err = avar_init(av, am);</span>
-<span class="lineNum">     304 </span><span class="lineCov">         18 :                 if (err)</span>
-<span class="lineNum">     305 </span><span class="lineNoCov">          0 :                         return err;</span>
-<span class="lineNum">     306 </span>            :         }
-<span class="lineNum">     307 </span>            : 
-<span class="lineNum">     308 </span>            :         // TODO: do init on demand from all_deps, so we don't need two
-<span class="lineNum">     309 </span>            :         // iterations.  Maybe.  this keeps this pretty simple as is.
-<span class="lineNum">     310 </span><span class="lineCov">         20 :         for (size_t i = 0; i &lt; am-&gt;avars.len; i++) {</span>
-<span class="lineNum">     311 </span><span class="lineCov">         18 :                 av = am-&gt;avars.elems[i];</span>
-<span class="lineNum">     312 </span><span class="lineCov">         18 :                 av-&gt;offset = offset + i;</span>
-<span class="lineNum">     313 </span><span class="lineCov">         18 :                 err = avar_all_deps(av, NULL);</span>
-<span class="lineNum">     314 </span><span class="lineCov">         18 :                 if (err)</span>
-<span class="lineNum">     315 </span><span class="lineNoCov">          0 :                         return err;</span>
-<span class="lineNum">     316 </span>            :         }
-<span class="lineNum">     317 </span>            : 
-<span class="lineNum">     318 </span>            :         // at this point each model knows its dependencies.  we can
-<span class="lineNum">     319 </span>            :         // sort the 3 run lists.
-<span class="lineNum">     320 </span><span class="lineCov">          2 :         qsort(am-&gt;initials.elems, am-&gt;initials.len, sizeof(AModel*), cmp_avar);</span>
-<span class="lineNum">     321 </span><span class="lineCov">          2 :         qsort(am-&gt;flows.elems, am-&gt;flows.len, sizeof(AModel*), cmp_avar);</span>
-<span class="lineNum">     322 </span><span class="lineCov">          2 :         qsort(am-&gt;stocks.elems, am-&gt;stocks.len, sizeof(AModel*), cmp_avar);</span>
-<span class="lineNum">     323 </span>            : 
-<span class="lineNum">     324 </span>            :         // compile each model (_prepare)
-<span class="lineNum">     325 </span>            :         // - isRef?
-<span class="lineNum">     326 </span>            :         // - sort variables into run lists (initials/flows/stocks)(DONE)
-<span class="lineNum">     327 </span>            :         // - give each variable unique ID
-<span class="lineNum">     328 </span>            :         // - sort initials + flows
-<span class="lineNum">     329 </span>            : 
-<span class="lineNum">     330 </span><span class="lineCov">          2 :         return SD_ERR_NO_ERROR;</span>
-<span class="lineNum">     331 </span>            : }
-<a name="332"><span class="lineNum">     332 </span>            : </a>
-<span class="lineNum">     333 </span>            : int
-<span class="lineNum">     334 </span><span class="lineCov">         32 : avar_all_deps(AVar *av, Slice *all)</span>
-<span class="lineNum">     335 </span>            : {
-<span class="lineNum">     336 </span><span class="lineCov">         32 :         if (!av-&gt;have_all_deps) {</span>
-<span class="lineNum">     337 </span><span class="lineCov">         18 :                 av-&gt;have_all_deps = true;</span>
-<span class="lineNum">     338 </span><span class="lineCov">         18 :                 slice_extend(&amp;av-&gt;all_deps, &amp;av-&gt;direct_deps);</span>
-<span class="lineNum">     339 </span><span class="lineCov">         32 :                 for (size_t i = 0; i &lt; av-&gt;direct_deps.len; i++) {</span>
-<span class="lineNum">     340 </span><span class="lineCov">         14 :                         AVar *dep = av-&gt;direct_deps.elems[i];</span>
-<span class="lineNum">     341 </span><span class="lineCov">         14 :                         avar_all_deps(dep, &amp;av-&gt;all_deps);</span>
-<span class="lineNum">     342 </span>            :                 }
-<span class="lineNum">     343 </span>            :         }
-<span class="lineNum">     344 </span><span class="lineCov">         32 :         if (all) {</span>
-<span class="lineNum">     345 </span><span class="lineCov">         14 :                 slice_extend(all, &amp;av-&gt;all_deps);</span>
-<span class="lineNum">     346 </span>            :         }
-<span class="lineNum">     347 </span><span class="lineCov">         32 :         return SD_ERR_NO_ERROR;</span>
-<span class="lineNum">     348 </span>            : }
-<a name="349"><span class="lineNum">     349 </span>            : </a>
-<span class="lineNum">     350 </span>            : int
-<span class="lineNum">     351 </span><span class="lineCov">          2 : module_get_referenced_models(Var *v, Slice *result)</span>
-<span class="lineNum">     352 </span>            : {
-<span class="lineNum">     353 </span>            :         SDModel *m;
-<span class="lineNum">     354 </span>            :         AModel *am;
-<span class="lineNum">     355 </span>            :         int err;
-<span class="lineNum">     356 </span>            : 
-<span class="lineNum">     357 </span><span class="lineCov">          2 :         if (!v || v-&gt;type != VAR_MODULE)</span>
-<span class="lineNum">     358 </span><span class="lineNoCov">          0 :                 return SD_ERR_UNSPECIFIED;</span>
-<span class="lineNum">     359 </span>            : 
-<span class="lineNum">     360 </span><span class="lineCov">          2 :         m = v-&gt;model;</span>
-<span class="lineNum">     361 </span>            : 
-<span class="lineNum">     362 </span>            :         // if this module's model is already in the result set, add
-<span class="lineNum">     363 </span>            :         // our unique module var to the list of modules.
-<span class="lineNum">     364 </span><span class="lineCov">          2 :         for (size_t i = 0; i &lt; result-&gt;len; i++) {</span>
-<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                 am = result-&gt;elems[i];</span>
-<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                 if (am-&gt;model == m) {</span>
-<span class="lineNum">     367 </span><span class="lineNoCov">          0 :                         slice_append(&amp;am-&gt;modules, v);</span>
-<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                         return SD_ERR_NO_ERROR;</span>
-<span class="lineNum">     369 </span>            :                 }
-<span class="lineNum">     370 </span>            :         }
-<span class="lineNum">     371 </span>            : 
-<span class="lineNum">     372 </span>            :         // otherwise create a new avar, add us, and add all
-<span class="lineNum">     373 </span>            :         // submodules.
-<span class="lineNum">     374 </span><span class="lineCov">          2 :         am = amodel(m);</span>
-<span class="lineNum">     375 </span><span class="lineCov">          2 :         if (!am)</span>
-<span class="lineNum">     376 </span><span class="lineNoCov">          0 :                 return SD_ERR_NOMEM;</span>
-<span class="lineNum">     377 </span>            : 
-<span class="lineNum">     378 </span><span class="lineCov">          2 :         err = slice_append(&amp;am-&gt;modules, v);</span>
-<span class="lineNum">     379 </span><span class="lineCov">          2 :         if (err)</span>
-<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                 return err;</span>
-<span class="lineNum">     381 </span>            : 
-<span class="lineNum">     382 </span><span class="lineCov">          2 :         err = slice_append(result, am);</span>
-<span class="lineNum">     383 </span><span class="lineCov">          2 :         if (err)</span>
-<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                 return err;</span>
+<span class="lineNum">     191 </span><span class="lineCov">        204 :         switch (n-&gt;type) {</span>
+<span class="lineNum">     192 </span>            :         case N_IDENT:
+<span class="lineNum">     193 </span><span class="lineCov">         75 :                 dep = resolve(avw-&gt;module, n-&gt;sval);</span>
+<span class="lineNum">     194 </span><span class="lineCov">         75 :                 if (!dep) {</span>
+<span class="lineNum">     195 </span><span class="lineNoCov">          0 :                         printf(&quot;resolve failed for %s\n&quot;, n-&gt;sval);</span>
+<span class="lineNum">     196 </span>            :                         // TODO: error
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :                         return;</span>
+<span class="lineNum">     198 </span>            :                 }
+<span class="lineNum">     199 </span><span class="lineCov">         75 :                 n-&gt;av = dep;</span>
+<span class="lineNum">     200 </span><span class="lineCov">         75 :                 slice_append(&amp;avw-&gt;av-&gt;direct_deps, dep);</span>
+<span class="lineNum">     201 </span><span class="lineCov">         75 :                 break;</span>
+<span class="lineNum">     202 </span>            :         case N_FLOATLIT:
+<span class="lineNum">     203 </span><span class="lineCov">         72 :                 n-&gt;fval = atof(n-&gt;sval);</span>
+<span class="lineNum">     204 </span><span class="lineCov">         72 :                 break;</span>
+<span class="lineNum">     205 </span>            :         case N_CALL:
+<span class="lineNum">     206 </span><span class="lineCov">          7 :                 for (size_t i = 0; i &lt; RT_FNS_LEN; i++) {</span>
+<span class="lineNum">     207 </span><span class="lineCov">          7 :                         if (strcmp(n-&gt;left-&gt;sval, RT_FNS[i].name) == 0) {</span>
+<span class="lineNum">     208 </span><span class="lineCov">          4 :                                 n-&gt;fn = RT_FNS[i].fn;</span>
+<span class="lineNum">     209 </span><span class="lineCov">          4 :                                 break;</span>
+<span class="lineNum">     210 </span>            :                         }
+<span class="lineNum">     211 </span>            :                 }
+<span class="lineNum">     212 </span><span class="lineCov">          4 :                 if (!n-&gt;fn)</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :                         printf(&quot;unknown fn '%s' for call\n&quot;, n-&gt;left-&gt;sval);</span>
+<span class="lineNum">     214 </span><span class="lineCov">          4 :                 break;</span>
+<span class="lineNum">     215 </span>            :         default:
+<span class="lineNum">     216 </span><span class="lineCov">         53 :                 break;</span>
+<span class="lineNum">     217 </span>            :         }
+<span class="lineNum">     218 </span>            : }
+<a name="219"><span class="lineNum">     219 </span>            : </a>
+<span class="lineNum">     220 </span>            : Walker *
+<span class="lineNum">     221 </span><span class="lineCov">        120 : avar_walker_start_child(void *data, Node *n)</span>
+<span class="lineNum">     222 </span>            : {
+<span class="lineNum">     223 </span><span class="lineCov">        120 :         AVarWalker *avw = data;</span>
+<span class="lineNum">     224 </span><span class="lineCov">        120 :         Node *curr = avw-&gt;curr;</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :         // skip trying to resolve function name identifiers for calls
+<span class="lineNum">     227 </span>            :         // a second time - already handled in avar_walker_start above
+<span class="lineNum">     228 </span><span class="lineCov">        120 :         if (curr-&gt;type == N_CALL &amp;&amp; n == curr-&gt;left)</span>
+<span class="lineNum">     229 </span><span class="lineCov">          4 :                 return NULL;</span>
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineCov">        116 :         avw-&gt;w.ops-&gt;ref(&amp;avw-&gt;w);</span>
+<span class="lineNum">     232 </span><span class="lineCov">        116 :         return &amp;avw-&gt;w;</span>
+<span class="lineNum">     233 </span>            : }
+<a name="234"><span class="lineNum">     234 </span>            : </a>
+<span class="lineNum">     235 </span>            : void
+<span class="lineNum">     236 </span><span class="lineCov">        116 : avar_walker_end_child(void *data, Node *n)</span>
+<span class="lineNum">     237 </span>            : {
+<span class="lineNum">     238 </span><span class="lineCov">        116 : }</span>
+<a name="239"><span class="lineNum">     239 </span>            : </a>
+<span class="lineNum">     240 </span>            : int
+<span class="lineNum">     241 </span><span class="lineCov">        132 : avar_init(AVar *av, AVar *module)</span>
+<span class="lineNum">     242 </span>            : {
+<span class="lineNum">     243 </span>            :         AVarWalker *w;
+<span class="lineNum">     244 </span>            :         bool ok;
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineCov">        132 :         w = NULL;</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :         // is amodule if we have a model pointer
+<span class="lineNum">     249 </span><span class="lineCov">        132 :         if (av-&gt;model) {</span>
+<span class="lineNum">     250 </span><span class="lineCov">         20 :                 return module_compile(av);</span>
+<span class="lineNum">     251 </span><span class="lineCov">        112 :         } else if (av-&gt;v-&gt;type == VAR_REF) {</span>
+<span class="lineNum">     252 </span><span class="lineCov">          8 :                 AVar *src = resolve(module-&gt;parent, av-&gt;v-&gt;src);</span>
+<span class="lineNum">     253 </span><span class="lineCov">          8 :                 if (src) {</span>
+<span class="lineNum">     254 </span><span class="lineCov">          8 :                         av-&gt;src = src;</span>
+<span class="lineNum">     255 </span><span class="lineCov">          8 :                         return 0;</span>
+<span class="lineNum">     256 </span>            :                 }
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     258 </span><span class="lineCov">        104 :         } else if (!av-&gt;v-&gt;eqn &amp;&amp; av-&gt;v-&gt;name &amp;&amp; strcmp(av-&gt;v-&gt;name, &quot;time&quot;) == 0) {</span>
+<span class="lineNum">     259 </span><span class="lineCov">         16 :                 return 0;</span>
+<span class="lineNum">     260 </span>            :         }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span><span class="lineCov">         88 :         w = avar_walker_new(module, av);</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineCov">         88 :         ok = node_walk(&amp;w-&gt;w, av-&gt;node);</span>
+<span class="lineNum">     265 </span><span class="lineCov">         88 :         if (!ok)</span>
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineCov">         98 :         for (size_t i = 0; i &lt; av-&gt;v-&gt;inflows.len; i++) {</span>
+<span class="lineNum">     269 </span><span class="lineCov">         10 :                 char *in_name = av-&gt;v-&gt;inflows.elems[i];</span>
+<span class="lineNum">     270 </span><span class="lineCov">         10 :                 AVar *in = resolve(module, in_name);</span>
+<span class="lineNum">     271 </span><span class="lineCov">         10 :                 if (!in)</span>
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                         goto error;</span>
+<span class="lineNum">     273 </span><span class="lineCov">         10 :                 slice_append(&amp;av-&gt;inflows, in);</span>
+<span class="lineNum">     274 </span>            :         }
+<span class="lineNum">     275 </span><span class="lineCov">        101 :         for (size_t i = 0; i &lt; av-&gt;v-&gt;outflows.len; i++) {</span>
+<span class="lineNum">     276 </span><span class="lineCov">         13 :                 char *out_name = av-&gt;v-&gt;outflows.elems[i];</span>
+<span class="lineNum">     277 </span><span class="lineCov">         13 :                 AVar *out = resolve(module, out_name);</span>
+<span class="lineNum">     278 </span><span class="lineCov">         13 :                 if (!out)</span>
+<span class="lineNum">     279 </span><span class="lineNoCov">          0 :                         goto error;</span>
+<span class="lineNum">     280 </span><span class="lineCov">         13 :                 slice_append(&amp;av-&gt;outflows, out);</span>
+<span class="lineNum">     281 </span>            :         }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineCov">         88 :         avar_walker_unref(w);</span>
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineCov">         88 :         return SD_ERR_NO_ERROR;</span>
+<span class="lineNum">     286 </span>            : error:
+<span class="lineNum">     287 </span><span class="lineNoCov">          0 :         avar_walker_unref(w);</span>
+<span class="lineNum">     288 </span><span class="lineNoCov">          0 :         return SD_ERR_UNSPECIFIED;</span>
+<span class="lineNum">     289 </span>            : }
+<a name="290"><span class="lineNum">     290 </span>            : </a>
+<span class="lineNum">     291 </span>            : void
+<span class="lineNum">     292 </span><span class="lineCov">        133 : avar_free(AVar *av)</span>
+<span class="lineNum">     293 </span>            : {
+<span class="lineNum">     294 </span><span class="lineCov">        133 :         if (!av)</span>
+<span class="lineNum">     295 </span><span class="lineCov">          1 :                 return;</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineCov">        132 :         sd_model_unref(av-&gt;model);</span>
+<span class="lineNum">     298 </span><span class="lineCov">        248 :         for (size_t i = 0; i &lt; av-&gt;avars.len; i++) {</span>
+<span class="lineNum">     299 </span><span class="lineCov">        116 :                 AVar *child = av-&gt;avars.elems[i];</span>
+<span class="lineNum">     300 </span><span class="lineCov">        116 :                 avar_free(child);</span>
+<span class="lineNum">     301 </span>            :         }
+<span class="lineNum">     302 </span><span class="lineCov">        132 :         free(av-&gt;avars.elems);</span>
+<span class="lineNum">     303 </span><span class="lineCov">        132 :         free(av-&gt;qual_name);</span>
+<span class="lineNum">     304 </span><span class="lineCov">        132 :         node_free(av-&gt;node);</span>
+<span class="lineNum">     305 </span><span class="lineCov">        132 :         free(av-&gt;direct_deps.elems);</span>
+<span class="lineNum">     306 </span><span class="lineCov">        132 :         free(av-&gt;inflows.elems);</span>
+<span class="lineNum">     307 </span><span class="lineCov">        132 :         free(av-&gt;outflows.elems);</span>
+<span class="lineNum">     308 </span><span class="lineCov">        132 :         free(av-&gt;initials.elems);</span>
+<span class="lineNum">     309 </span><span class="lineCov">        132 :         free(av-&gt;flows.elems);</span>
+<span class="lineNum">     310 </span><span class="lineCov">        132 :         free(av-&gt;stocks.elems);</span>
+<span class="lineNum">     311 </span><span class="lineCov">        132 :         var_free(av-&gt;time);</span>
+<span class="lineNum">     312 </span><span class="lineCov">        132 :         free(av);</span>
+<span class="lineNum">     313 </span>            : }
+<a name="314"><span class="lineNum">     314 </span>            : </a>
+<span class="lineNum">     315 </span>            : AVar *
+<span class="lineNum">     316 </span><span class="lineCov">         20 : module(SDProject *p, AVar *parent, SDModel *model, Var *vmodule)</span>
+<span class="lineNum">     317 </span>            : {
+<span class="lineNum">     318 </span>            :         AVar *module;
+<span class="lineNum">     319 </span>            :         Slice conns;
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span><span class="lineCov">         20 :         module = calloc(1, sizeof(*module));</span>
+<span class="lineNum">     322 </span><span class="lineCov">         20 :         if (!module)</span>
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     324 </span><span class="lineCov">         20 :         module-&gt;v = vmodule;</span>
+<span class="lineNum">     325 </span><span class="lineCov">         20 :         module-&gt;model = model;</span>
+<span class="lineNum">     326 </span><span class="lineCov">         20 :         module-&gt;parent = parent;</span>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineCov">         20 :         if (!parent) {</span>
+<span class="lineNum">     329 </span><span class="lineCov">         16 :                 Var *time = calloc(1, sizeof(*time));</span>
+<span class="lineNum">     330 </span><span class="lineCov">         16 :                 if (!time)</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :                         goto error;</span>
+<span class="lineNum">     332 </span><span class="lineCov">         16 :                 time-&gt;type = VAR_AUX;</span>
+<span class="lineNum">     333 </span><span class="lineCov">         16 :                 time-&gt;name = strdup(&quot;time&quot;);</span>
+<span class="lineNum">     334 </span><span class="lineCov">         16 :                 module-&gt;time = time;</span>
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span><span class="lineCov">         16 :                 AVar *atime = calloc(1, sizeof(*atime));</span>
+<span class="lineNum">     337 </span><span class="lineCov">         16 :                 if (!atime)</span>
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                         goto error;</span>
+<span class="lineNum">     339 </span><span class="lineCov">         16 :                 atime-&gt;v = time;</span>
+<span class="lineNum">     340 </span><span class="lineCov">         16 :                 atime-&gt;parent = module;</span>
+<span class="lineNum">     341 </span><span class="lineCov">         16 :                 slice_append(&amp;module-&gt;avars, atime);</span>
+<span class="lineNum">     342 </span>            :         }
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span><span class="lineCov">         20 :         memset(&amp;conns, 0, sizeof(conns));</span>
+<span class="lineNum">     345 </span><span class="lineCov">         20 :         if (vmodule)</span>
+<span class="lineNum">     346 </span><span class="lineCov">          4 :                 conns = vmodule-&gt;conns;</span>
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span><span class="lineCov">        120 :         for (size_t i = 0; i &lt; model-&gt;vars.len; i++) {</span>
+<span class="lineNum">     349 </span>            :                 AVar *av;
+<span class="lineNum">     350 </span>            :                 Var *v;
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineCov">        100 :                 av = NULL;</span>
+<span class="lineNum">     353 </span><span class="lineCov">        100 :                 v = model-&gt;vars.elems[i];</span>
+<span class="lineNum">     354 </span>            :                 // FIXME: this is unelegant and seems inefficient.
+<span class="lineNum">     355 </span><span class="lineCov">        152 :                 for (size_t j = 0; j &lt; conns.len; j++) {</span>
+<span class="lineNum">     356 </span><span class="lineCov">         60 :                         Var *r = conns.elems[j];</span>
+<span class="lineNum">     357 </span><span class="lineCov">         60 :                         if (strcmp(v-&gt;name, r-&gt;name) == 0) {</span>
+<span class="lineNum">     358 </span><span class="lineCov">          8 :                                 av = avar(module, r);</span>
+<span class="lineNum">     359 </span><span class="lineCov">          8 :                                 break;</span>
+<span class="lineNum">     360 </span>            :                         }
+<span class="lineNum">     361 </span>            :                 }
+<span class="lineNum">     362 </span><span class="lineCov">        100 :                 if (!av)</span>
+<span class="lineNum">     363 </span><span class="lineCov">         92 :                         av = avar(module, v);</span>
+<span class="lineNum">     364 </span><span class="lineCov">        100 :                 if (!av)</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                         goto error;</span>
+<span class="lineNum">     366 </span><span class="lineCov">        100 :                 slice_append(&amp;module-&gt;avars, av);</span>
+<span class="lineNum">     367 </span>            :         }
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineCov">         20 :         return module;</span>
+<span class="lineNum">     370 </span>            : error:
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :         avar_free(module);</span>
+<span class="lineNum">     372 </span><span class="lineNoCov">          0 :         return NULL;</span>
+<span class="lineNum">     373 </span>            : }
+<a name="374"><span class="lineNum">     374 </span>            : </a>
+<span class="lineNum">     375 </span>            : AVar *
+<span class="lineNum">     376 </span><span class="lineCov">        189 : resolve(AVar *module, const char *name)</span>
+<span class="lineNum">     377 </span>            : {
+<span class="lineNum">     378 </span>            :         size_t len;
+<span class="lineNum">     379 </span>            :         const char *subvar;
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineCov">        189 :         len = 0;</span>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">        189 :         if (!name)</span>
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :                 return NULL;</span>
 <span class="lineNum">     385 </span>            : 
-<span class="lineNum">     386 </span><span class="lineCov">          2 :         for (size_t i = 0; i &lt; m-&gt;modules.len; i++) {</span>
-<span class="lineNum">     387 </span><span class="lineNoCov">          0 :                 Var *submodule = m-&gt;modules.elems[i];</span>
-<span class="lineNum">     388 </span><span class="lineNoCov">          0 :                 if (!submodule-&gt;model)</span>
-<span class="lineNum">     389 </span><span class="lineNoCov">          0 :                         submodule-&gt;model = sd_project_get_model(m-&gt;file-&gt;project, submodule-&gt;name);</span>
-<span class="lineNum">     390 </span><span class="lineNoCov">          0 :                 err = module_get_referenced_models(submodule, result);</span>
-<span class="lineNum">     391 </span><span class="lineNoCov">          0 :                 if (err)</span>
-<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                         return err;</span>
-<span class="lineNum">     393 </span>            :         }
-<span class="lineNum">     394 </span>            : 
-<span class="lineNum">     395 </span><span class="lineCov">          2 :         return SD_ERR_NO_ERROR;</span>
-<span class="lineNum">     396 </span>            : }
-<a name="397"><span class="lineNum">     397 </span>            : </a>
-<span class="lineNum">     398 </span>            : SDSim *
-<span class="lineNum">     399 </span><span class="lineCov">          3 : sd_sim_new(SDProject *p, const char *model_name)</span>
-<span class="lineNum">     400 </span>            : {
-<span class="lineNum">     401 </span><span class="lineCov">          3 :         SDSim *sim = calloc(1, sizeof(*sim));</span>
-<span class="lineNum">     402 </span><span class="lineCov">          3 :         Var *module = calloc(1, sizeof(*module));</span>
-<span class="lineNum">     403 </span>            :         int err;
-<span class="lineNum">     404 </span><span class="lineCov">          3 :         size_t nvars = 1; // time is offset 0</span>
-<span class="lineNum">     405 </span>            : 
-<span class="lineNum">     406 </span><span class="lineCov">          3 :         if (!sim || !module)</span>
-<span class="lineNum">     407 </span>            :                 goto error;
-<span class="lineNum">     408 </span>            : 
-<span class="lineNum">     409 </span><span class="lineCov">          3 :         sd_project_ref(p);</span>
-<span class="lineNum">     410 </span><span class="lineCov">          3 :         sim-&gt;project = p;</span>
-<span class="lineNum">     411 </span><span class="lineCov">          3 :         sd_sim_ref(sim);</span>
-<span class="lineNum">     412 </span>            : 
-<span class="lineNum">     413 </span>            :         // create a module corresponding to the model we wish to
-<span class="lineNum">     414 </span>            :         // simulate.
-<span class="lineNum">     415 </span><span class="lineCov">          3 :         module-&gt;type = VAR_MODULE;</span>
-<span class="lineNum">     416 </span><span class="lineCov">          3 :         if (model_name)</span>
-<span class="lineNum">     417 </span><span class="lineCov">          1 :                 module-&gt;name = strdup(model_name);</span>
-<span class="lineNum">     418 </span><span class="lineCov">          3 :         module-&gt;model = sd_project_get_model(p, model_name);</span>
-<span class="lineNum">     419 </span><span class="lineCov">          3 :         if (!module-&gt;model)</span>
-<span class="lineNum">     420 </span><span class="lineCov">          1 :                 goto error;</span>
-<span class="lineNum">     421 </span>            : 
-<span class="lineNum">     422 </span><span class="lineCov">          2 :         sim-&gt;module = module;</span>
-<span class="lineNum">     423 </span><span class="lineCov">          2 :         module = NULL;</span>
-<span class="lineNum">     424 </span>            : 
-<span class="lineNum">     425 </span><span class="lineCov">          2 :         err = module_get_referenced_models(sim-&gt;module, &amp;sim-&gt;amodels);</span>
-<span class="lineNum">     426 </span><span class="lineCov">          2 :         if (err)</span>
-<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 goto error;</span>
-<span class="lineNum">     428 </span>            : 
-<span class="lineNum">     429 </span><span class="lineCov">          4 :         for (size_t i = 0; i &lt; sim-&gt;amodels.len; i++) {</span>
-<span class="lineNum">     430 </span><span class="lineCov">          2 :                 AModel *am = sim-&gt;amodels.elems[i];</span>
-<span class="lineNum">     431 </span><span class="lineCov">          2 :                 err = amodel_compile(am, nvars);</span>
-<span class="lineNum">     432 </span><span class="lineCov">          2 :                 if (err)</span>
-<span class="lineNum">     433 </span><span class="lineNoCov">          0 :                         goto error;</span>
-<span class="lineNum">     434 </span>            :                 // FIXME: this isn't right for modules
-<span class="lineNum">     435 </span><span class="lineCov">          2 :                 nvars += am-&gt;avars.len;</span>
-<span class="lineNum">     436 </span>            :         }
-<span class="lineNum">     437 </span>            : 
-<span class="lineNum">     438 </span><span class="lineCov">          2 :         sim-&gt;nvars = nvars;</span>
-<span class="lineNum">     439 </span><span class="lineCov">          2 :         err = sd_sim_reset(sim);</span>
-<span class="lineNum">     440 </span><span class="lineCov">          2 :         if (err)</span>
-<span class="lineNum">     441 </span><span class="lineNoCov">          0 :                 goto error;</span>
-<span class="lineNum">     442 </span>            : 
-<span class="lineNum">     443 </span><span class="lineCov">          2 :         return sim;</span>
-<span class="lineNum">     444 </span>            : error:
-<span class="lineNum">     445 </span><span class="lineCov">          1 :         var_free(module);</span>
-<span class="lineNum">     446 </span><span class="lineCov">          1 :         sd_sim_unref(sim);</span>
-<span class="lineNum">     447 </span><span class="lineCov">          1 :         return NULL;</span>
-<span class="lineNum">     448 </span>            : }
-<a name="449"><span class="lineNum">     449 </span>            : </a>
-<span class="lineNum">     450 </span>            : int
-<span class="lineNum">     451 </span><span class="lineCov">          3 : sd_sim_reset(SDSim *s)</span>
-<span class="lineNum">     452 </span>            : {
-<span class="lineNum">     453 </span><span class="lineCov">          3 :         int err = 0;</span>
-<span class="lineNum">     454 </span>            :         size_t save_every;
+<span class="lineNum">     386 </span>            :         // a name like .area gets resolved to area
+<span class="lineNum">     387 </span><span class="lineCov">        189 :         if (name[0] == '.')</span>
+<span class="lineNum">     388 </span><span class="lineCov">          4 :                 name++;</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineCov">        189 :         subvar = strchr(name, '.');</span>
+<span class="lineNum">     391 </span><span class="lineCov">        189 :         if (subvar) {</span>
+<span class="lineNum">     392 </span><span class="lineCov">         17 :                 len = subvar - name;</span>
+<span class="lineNum">     393 </span><span class="lineCov">         17 :                 subvar++;</span>
+<span class="lineNum">     394 </span>            :         }
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span><span class="lineCov">        787 :         for (size_t i = 0; i &lt; module-&gt;avars.len; i++) {</span>
+<span class="lineNum">     397 </span><span class="lineCov">        785 :                 AVar *av = module-&gt;avars.elems[i];</span>
+<span class="lineNum">     398 </span><span class="lineCov">        785 :                 if (subvar &amp;&amp; av-&gt;v-&gt;type == VAR_MODULE &amp;&amp; strncmp(av-&gt;v-&gt;name, name, len) == 0) {</span>
+<span class="lineNum">     399 </span><span class="lineCov">         17 :                         return resolve(av, subvar);</span>
+<span class="lineNum">     400 </span>            :                 }
+<span class="lineNum">     401 </span><span class="lineCov">        768 :                 else if (strcmp(av-&gt;v-&gt;name, name) == 0)</span>
+<span class="lineNum">     402 </span><span class="lineCov">        170 :                         return av;</span>
+<span class="lineNum">     403 </span>            :         }
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineCov">          2 :         return NULL;</span>
+<span class="lineNum">     406 </span>            : }
+<a name="407"><span class="lineNum">     407 </span>            : </a>
+<span class="lineNum">     408 </span>            : int
+<span class="lineNum">     409 </span><span class="lineCov">         20 : module_compile(AVar *module)</span>
+<span class="lineNum">     410 </span>            : {
+<span class="lineNum">     411 </span>            :         AVar *av;
+<span class="lineNum">     412 </span>            :         int err, failed;
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineCov">         20 :         failed = 0;</span>
+<span class="lineNum">     415 </span><span class="lineCov">        136 :         for (size_t i = 0; i &lt; module-&gt;avars.len; i++) {</span>
+<span class="lineNum">     416 </span><span class="lineCov">        116 :                 av = module-&gt;avars.elems[i];</span>
+<span class="lineNum">     417 </span><span class="lineCov">        116 :                 err = avar_init(av, module);</span>
+<span class="lineNum">     418 </span><span class="lineCov">        116 :                 if (err)</span>
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :                         failed++;</span>
+<span class="lineNum">     420 </span>            :         }
+<span class="lineNum">     421 </span><span class="lineCov">         20 :         if (failed)</span>
+<span class="lineNum">     422 </span><span class="lineNoCov">          0 :                 return SD_ERR_UNSPECIFIED;</span>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineCov">        136 :         for (size_t i = 0; i &lt; module-&gt;avars.len; i++) {</span>
+<span class="lineNum">     425 </span><span class="lineCov">        116 :                 av = module-&gt;avars.elems[i];</span>
+<span class="lineNum">     426 </span>            :                 // TODO: fix for multiple levels of indirection.
+<span class="lineNum">     427 </span><span class="lineCov">        116 :                 if (av-&gt;v-&gt;type == VAR_REF)</span>
+<span class="lineNum">     428 </span><span class="lineCov">          8 :                         av-&gt;offset = av-&gt;src-&gt;offset;</span>
+<span class="lineNum">     429 </span>            :         }
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span>            :         // sorting of runlists is done in a separate step after
+<span class="lineNum">     432 </span>            :         // offsets are assigned.
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineCov">         20 :         return SD_ERR_NO_ERROR;</span>
+<span class="lineNum">     435 </span>            : }
+<a name="436"><span class="lineNum">     436 </span>            : </a>
+<span class="lineNum">     437 </span>            : SDSim *
+<span class="lineNum">     438 </span><span class="lineCov">         17 : sd_sim_new(SDProject *p, const char *model_name)</span>
+<span class="lineNum">     439 </span>            : {
+<span class="lineNum">     440 </span>            :         SDSim *sim;
+<span class="lineNum">     441 </span>            :         SDModel *model;
+<span class="lineNum">     442 </span>            :         int err, offset;
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineCov">         17 :         offset = 0;</span>
+<span class="lineNum">     445 </span><span class="lineCov">         17 :         model = NULL;</span>
+<span class="lineNum">     446 </span><span class="lineCov">         17 :         sim = calloc(1, sizeof(*sim));</span>
+<span class="lineNum">     447 </span><span class="lineCov">         17 :         if (!sim)</span>
+<span class="lineNum">     448 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     449 </span><span class="lineCov">         17 :         sd_sim_ref(sim);</span>
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span>            :         // FIXME: check refcounting
+<span class="lineNum">     452 </span><span class="lineCov">         17 :         model = sd_project_get_model(p, model_name);</span>
+<span class="lineNum">     453 </span><span class="lineCov">         17 :         if (!model)</span>
+<span class="lineNum">     454 </span><span class="lineCov">          1 :                 goto error;</span>
 <span class="lineNum">     455 </span>            : 
-<span class="lineNum">     456 </span><span class="lineCov">          3 :         s-&gt;spec = s-&gt;module-&gt;model-&gt;file-&gt;sim_specs;</span>
-<span class="lineNum">     457 </span><span class="lineCov">          3 :         s-&gt;step = 0;</span>
-<span class="lineNum">     458 </span><span class="lineCov">          3 :         s-&gt;save_step = 0;</span>
-<span class="lineNum">     459 </span><span class="lineCov">          3 :         s-&gt;nsteps = (s-&gt;spec.stop - s-&gt;spec.start)/s-&gt;spec.dt + 1;</span>
-<span class="lineNum">     460 </span>            : 
-<span class="lineNum">     461 </span><span class="lineCov">          3 :         save_every = s-&gt;spec.savestep/s-&gt;spec.dt+.5;</span>
-<span class="lineNum">     462 </span><span class="lineCov">          3 :         s-&gt;save_every = save_every &gt; 1 ? save_every : 1;</span>
-<span class="lineNum">     463 </span><span class="lineCov">          3 :         s-&gt;nsaves = s-&gt;nsteps/s-&gt;save_every;</span>
-<span class="lineNum">     464 </span><span class="lineCov">          3 :         if (s-&gt;nsteps % s-&gt;save_every)</span>
-<span class="lineNum">     465 </span><span class="lineCov">          2 :                 s-&gt;nsaves++;</span>
+<span class="lineNum">     456 </span><span class="lineCov">         16 :         sim-&gt;module = module(p, NULL, model, NULL);</span>
+<span class="lineNum">     457 </span><span class="lineCov">         16 :         if (!sim-&gt;module)</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span><span class="lineCov">         16 :         sd_project_ref(p);</span>
+<span class="lineNum">     461 </span><span class="lineCov">         16 :         sim-&gt;project = p;</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineCov">         16 :         err = avar_init(sim-&gt;module, NULL);</span>
+<span class="lineNum">     464 </span><span class="lineCov">         16 :         if (err)</span>
+<span class="lineNum">     465 </span><span class="lineNoCov">          0 :                 goto error;</span>
 <span class="lineNum">     466 </span>            : 
-<span class="lineNum">     467 </span><span class="lineCov">          3 :         free(s-&gt;slab);</span>
-<span class="lineNum">     468 </span>            :         // XXX: 1 extra step to simplify run_to
-<span class="lineNum">     469 </span><span class="lineCov">          3 :         s-&gt;slab = calloc(s-&gt;nvars*(s-&gt;nsaves + 1), sizeof(double));</span>
-<span class="lineNum">     470 </span><span class="lineCov">          3 :         if (!s-&gt;slab) {</span>
-<span class="lineNum">     471 </span><span class="lineNoCov">          0 :                 err = SD_ERR_NOMEM;</span>
-<span class="lineNum">     472 </span><span class="lineNoCov">          0 :                 goto error;</span>
-<span class="lineNum">     473 </span>            :         }
-<span class="lineNum">     474 </span><span class="lineCov">          3 :         s-&gt;curr = s-&gt;slab;</span>
-<span class="lineNum">     475 </span><span class="lineCov">          3 :         s-&gt;next = NULL;</span>
-<span class="lineNum">     476 </span>            : 
-<span class="lineNum">     477 </span><span class="lineCov">          3 :         s-&gt;curr[TIME] = s-&gt;spec.start;</span>
-<span class="lineNum">     478 </span>            : 
-<span class="lineNum">     479 </span><span class="lineCov">          3 :         AModel *root = s-&gt;amodels.elems[0];</span>
-<span class="lineNum">     480 </span><span class="lineCov">          3 :         calc(s, s-&gt;curr, &amp;root-&gt;initials);</span>
+<span class="lineNum">     467 </span><span class="lineCov">         16 :         err = module_assign_offsets(sim-&gt;module, &amp;offset);</span>
+<span class="lineNum">     468 </span><span class="lineCov">         16 :         if (err)</span>
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span><span class="lineCov">         16 :         err = module_sort_runlists(sim-&gt;module);</span>
+<span class="lineNum">     472 </span><span class="lineCov">         16 :         if (err)</span>
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span><span class="lineCov">         16 :         sim-&gt;nvars = offset;</span>
+<span class="lineNum">     476 </span><span class="lineCov">         16 :         err = sd_sim_reset(sim);</span>
+<span class="lineNum">     477 </span><span class="lineCov">         16 :         if (err)</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineCov">         16 :         return sim;</span>
 <span class="lineNum">     481 </span>            : error:
-<span class="lineNum">     482 </span><span class="lineCov">          3 :         return err;</span>
-<span class="lineNum">     483 </span>            : }
-<a name="484"><span class="lineNum">     484 </span>            : </a>
-<span class="lineNum">     485 </span>            : void
-<span class="lineNum">     486 </span><span class="lineCov">    1000485 : calc(SDSim *s, double *data, Slice *l)</span>
-<span class="lineNum">     487 </span>            : {
-<span class="lineNum">     488 </span>            :         //printf(&quot;CALC\n&quot;);
-<span class="lineNum">     489 </span><span class="lineCov">    1004354 :         for (size_t i = 0; i &lt; l-&gt;len; i++) {</span>
-<span class="lineNum">     490 </span><span class="lineCov">       3869 :                 AVar *av = l-&gt;elems[i];</span>
-<span class="lineNum">     491 </span><span class="lineCov">       3869 :                 double v = svisit(s, av-&gt;node);</span>
-<span class="lineNum">     492 </span><span class="lineCov">       3869 :                 if (av-&gt;v-&gt;gf)</span>
-<span class="lineNum">     493 </span><span class="lineCov">       1446 :                         v = lookup(av-&gt;v-&gt;gf, v);</span>
-<span class="lineNum">     494 </span>            :                 //printf(&quot;\t%s\t%f\n&quot;, av-&gt;v-&gt;name, v);
-<span class="lineNum">     495 </span><span class="lineCov">       3869 :                 data[av-&gt;offset] = v;</span>
-<span class="lineNum">     496 </span>            :         }
-<span class="lineNum">     497 </span><span class="lineCov">    1000485 : }</span>
-<a name="498"><span class="lineNum">     498 </span>            : </a>
-<span class="lineNum">     499 </span>            : void
-<span class="lineNum">     500 </span><span class="lineCov">    1000482 : calc_stocks(SDSim *s, double *data, Slice *l)</span>
-<span class="lineNum">     501 </span>            : {
-<span class="lineNum">     502 </span>            :         double prev, v, dt;
+<span class="lineNum">     482 </span><span class="lineCov">          1 :         sd_sim_unref(sim);</span>
+<span class="lineNum">     483 </span><span class="lineCov">          1 :         return NULL;</span>
+<span class="lineNum">     484 </span>            : }
+<a name="485"><span class="lineNum">     485 </span>            : </a>
+<span class="lineNum">     486 </span>            : int
+<span class="lineNum">     487 </span><span class="lineCov">         20 : module_assign_offsets(AVar *module, int *offset)</span>
+<span class="lineNum">     488 </span>            : {
+<span class="lineNum">     489 </span>            :         int err;
+<span class="lineNum">     490 </span><span class="lineCov">        136 :         for (size_t i = 0; i &lt; module-&gt;avars.len; i++) {</span>
+<span class="lineNum">     491 </span>            :                 AVar *av;
+<span class="lineNum">     492 </span><span class="lineCov">        116 :                 av = module-&gt;avars.elems[i];</span>
+<span class="lineNum">     493 </span><span class="lineCov">        116 :                 if (av-&gt;model) {</span>
+<span class="lineNum">     494 </span><span class="lineCov">          4 :                         err = module_assign_offsets(av, offset);</span>
+<span class="lineNum">     495 </span><span class="lineCov">          4 :                         if (err)</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :                                 return err;</span>
+<span class="lineNum">     497 </span><span class="lineCov">        112 :                 } else if (!av-&gt;src) {</span>
+<span class="lineNum">     498 </span>            :                         // assign offsets for everything thats not a
+<span class="lineNum">     499 </span>            :                         // module or ref
+<span class="lineNum">     500 </span><span class="lineCov">        104 :                         av-&gt;offset = (*offset)++;</span>
+<span class="lineNum">     501 </span>            :                 }
+<span class="lineNum">     502 </span>            :         }
 <span class="lineNum">     503 </span>            : 
-<span class="lineNum">     504 </span><span class="lineCov">    1000482 :         dt = s-&gt;spec.dt;</span>
-<span class="lineNum">     505 </span>            : 
-<span class="lineNum">     506 </span>            :         //printf(&quot;CALC STOCKS\n&quot;);
-<span class="lineNum">     507 </span><span class="lineCov">    4003852 :         for (size_t i = 0; i &lt; l-&gt;len; i++) {</span>
-<span class="lineNum">     508 </span><span class="lineCov">    3003370 :                 AVar *av = l-&gt;elems[i];</span>
-<span class="lineNum">     509 </span>            :                 // XXX: this could also be implemented by building the
-<span class="lineNum">     510 </span>            :                 // addition and subtraction of flows in the stock's
-<span class="lineNum">     511 </span>            :                 // AST.  Maybe that would be cleaner?
-<span class="lineNum">     512 </span><span class="lineCov">    3003370 :                 switch (av-&gt;v-&gt;type) {</span>
-<span class="lineNum">     513 </span>            :                 case VAR_STOCK:
-<span class="lineNum">     514 </span><span class="lineCov">    1000963 :                         prev = s-&gt;curr[av-&gt;offset];</span>
-<span class="lineNum">     515 </span><span class="lineCov">    1000963 :                         v = 0;</span>
-<span class="lineNum">     516 </span><span class="lineCov">    2001926 :                         for (size_t i = 0; i &lt; av-&gt;inflows.len; i++) {</span>
-<span class="lineNum">     517 </span><span class="lineCov">    1000963 :                                 AVar *in = av-&gt;inflows.elems[i];</span>
-<span class="lineNum">     518 </span><span class="lineCov">    1000963 :                                 v += svisit(s, in-&gt;node);</span>
-<span class="lineNum">     519 </span>            :                         }
-<span class="lineNum">     520 </span><span class="lineCov">    1002406 :                         for (size_t i = 0; i &lt; av-&gt;outflows.len; i++) {</span>
-<span class="lineNum">     521 </span><span class="lineCov">       1443 :                                 AVar *out = av-&gt;outflows.elems[i];</span>
-<span class="lineNum">     522 </span><span class="lineCov">       1443 :                                 v -= svisit(s, out-&gt;node);</span>
-<span class="lineNum">     523 </span>            :                         }
-<span class="lineNum">     524 </span><span class="lineCov">    1000963 :                         data[av-&gt;offset] = prev + v*dt;</span>
-<span class="lineNum">     525 </span>            :                         //printf(&quot;\t%s\t%f\n&quot;, av-&gt;v-&gt;name, prev + v*dt);
-<span class="lineNum">     526 </span><span class="lineCov">    1000963 :                         break;</span>
-<span class="lineNum">     527 </span>            :                 default:
-<span class="lineNum">     528 </span><span class="lineCov">    2002407 :                         v = svisit(s, av-&gt;node);</span>
-<span class="lineNum">     529 </span><span class="lineCov">    2002407 :                         data[av-&gt;offset] = v;</span>
-<span class="lineNum">     530 </span><span class="lineCov">    2002407 :                         break;</span>
-<span class="lineNum">     531 </span>            :                 }
-<span class="lineNum">     532 </span>            :         }
-<span class="lineNum">     533 </span><span class="lineCov">    1000482 : }</span>
-<a name="534"><span class="lineNum">     534 </span>            : </a>
-<span class="lineNum">     535 </span>            : int
-<span class="lineNum">     536 </span><span class="lineCov">          3 : sd_sim_run_to(SDSim *s, double end)</span>
-<span class="lineNum">     537 </span>            : {
-<span class="lineNum">     538 </span>            :         AModel *root;
-<span class="lineNum">     539 </span>            :         double dt;
-<span class="lineNum">     540 </span>            : 
-<span class="lineNum">     541 </span><span class="lineCov">          3 :         if (!s)</span>
-<span class="lineNum">     542 </span><span class="lineCov">          1 :                 return -1;</span>
-<span class="lineNum">     543 </span>            : 
-<span class="lineNum">     544 </span><span class="lineCov">          2 :         root = s-&gt;amodels.elems[0];</span>
-<span class="lineNum">     545 </span><span class="lineCov">          2 :         dt = s-&gt;spec.dt;</span>
-<span class="lineNum">     546 </span><span class="lineCov">          2 :         s-&gt;curr = sim_curr(s);</span>
-<span class="lineNum">     547 </span><span class="lineCov">          2 :         s-&gt;next = sim_next(s);</span>
-<span class="lineNum">     548 </span>            : 
-<span class="lineNum">     549 </span><span class="lineCov">    1000484 :         while (s-&gt;step &lt; s-&gt;nsteps &amp;&amp; s-&gt;curr[TIME] &lt;= end) {</span>
-<span class="lineNum">     550 </span><span class="lineCov">    1000482 :                 calc(s, s-&gt;curr, &amp;root-&gt;flows);</span>
-<span class="lineNum">     551 </span><span class="lineCov">    1000482 :                 calc_stocks(s, s-&gt;next, &amp;root-&gt;stocks);</span>
-<span class="lineNum">     552 </span>            : 
-<span class="lineNum">     553 </span><span class="lineCov">    1000482 :                 if (s-&gt;step + 1 == s-&gt;nsteps)</span>
-<span class="lineNum">     554 </span><span class="lineCov">          2 :                         break;</span>
-<span class="lineNum">     555 </span>            : 
-<span class="lineNum">     556 </span>            :                 // calculate this way instead of += dt to minimize
-<span class="lineNum">     557 </span>            :                 // cumulative floating point errors.
-<span class="lineNum">     558 </span><span class="lineCov">    1000480 :                 s-&gt;next[TIME] = s-&gt;spec.start + (s-&gt;step+1)*dt;</span>
-<span class="lineNum">     559 </span>            : 
-<span class="lineNum">     560 </span><span class="lineCov">    1000480 :                 if (s-&gt;step++ % s-&gt;save_every != 0) {</span>
-<span class="lineNum">     561 </span><span class="lineCov">     999990 :                         memcpy(s-&gt;curr, s-&gt;next, s-&gt;nvars*sizeof(double));</span>
-<span class="lineNum">     562 </span>            :                 } else {
-<span class="lineNum">     563 </span><span class="lineCov">        490 :                         s-&gt;save_step++;</span>
-<span class="lineNum">     564 </span><span class="lineCov">        490 :                         s-&gt;curr = sim_curr(s);</span>
-<span class="lineNum">     565 </span><span class="lineCov">        490 :                         s-&gt;next = sim_next(s);</span>
-<span class="lineNum">     566 </span>            :                 }
-<span class="lineNum">     567 </span>            :         }
-<span class="lineNum">     568 </span>            : 
-<span class="lineNum">     569 </span><span class="lineCov">          2 :         return 0;</span>
-<span class="lineNum">     570 </span>            : }
-<a name="571"><span class="lineNum">     571 </span>            : </a>
-<span class="lineNum">     572 </span>            : int
-<span class="lineNum">     573 </span><span class="lineCov">          3 : sd_sim_run_to_end(SDSim *s)</span>
-<span class="lineNum">     574 </span>            : {
-<span class="lineNum">     575 </span><span class="lineCov">          3 :         if (!s)</span>
-<span class="lineNum">     576 </span><span class="lineCov">          1 :                 return -1;</span>
-<span class="lineNum">     577 </span><span class="lineCov">          2 :         return sd_sim_run_to(s, s-&gt;spec.stop + 1);</span>
-<span class="lineNum">     578 </span>            : }
-<a name="579"><span class="lineNum">     579 </span>            : </a>
-<span class="lineNum">     580 </span>            : double *
-<span class="lineNum">     581 </span><span class="lineCov">        492 : sim_curr(SDSim *s)</span>
-<span class="lineNum">     582 </span>            : {
-<span class="lineNum">     583 </span><span class="lineCov">        492 :         return &amp;s-&gt;slab[s-&gt;save_step*s-&gt;nvars];</span>
-<span class="lineNum">     584 </span>            : }
-<a name="585"><span class="lineNum">     585 </span>            : </a>
-<span class="lineNum">     586 </span>            : double *
-<span class="lineNum">     587 </span><span class="lineCov">        492 : sim_next(SDSim *s)</span>
-<span class="lineNum">     588 </span>            : {
-<span class="lineNum">     589 </span><span class="lineCov">        492 :         return &amp;s-&gt;slab[(s-&gt;save_step+1)*s-&gt;nvars];</span>
-<span class="lineNum">     590 </span>            : }
-<a name="591"><span class="lineNum">     591 </span>            : </a>
-<span class="lineNum">     592 </span>            : void
-<span class="lineNum">     593 </span><span class="lineCov">          4 : sd_sim_ref(SDSim *sim)</span>
-<span class="lineNum">     594 </span>            : {
-<span class="lineNum">     595 </span><span class="lineCov">          4 :         if (!sim)</span>
-<span class="lineNum">     596 </span><span class="lineCov">          5 :                 return;</span>
-<span class="lineNum">     597 </span><span class="lineCov">          3 :         __sync_fetch_and_add(&amp;sim-&gt;refcount, 1);</span>
-<span class="lineNum">     598 </span>            : }
-<a name="599"><span class="lineNum">     599 </span>            : </a>
-<span class="lineNum">     600 </span>            : int
-<span class="lineNum">     601 </span><span class="lineCov">          7 : sd_sim_get_value(SDSim *s, const char *name, double *result)</span>
-<span class="lineNum">     602 </span>            : {
-<span class="lineNum">     603 </span>            :         AVar *av;
-<span class="lineNum">     604 </span>            : 
-<span class="lineNum">     605 </span><span class="lineCov">          7 :         if (!s || !name || !result)</span>
-<span class="lineNum">     606 </span><span class="lineCov">          1 :                 return SD_ERR_UNSPECIFIED;</span>
+<span class="lineNum">     504 </span><span class="lineCov">         20 :         return 0;</span>
+<a name="505"><span class="lineNum">     505 </span>            : }</a>
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span><span class="lineCov">        106 : int module_add_to_runlists(AVar *module, AVar *av)</span>
+<span class="lineNum">     508 </span>            : {
+<span class="lineNum">     509 </span><span class="lineCov">        106 :         if (av-&gt;visited)</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span>            :         // TODO: better circularity error reporting
+<span class="lineNum">     513 </span><span class="lineCov">        106 :         if (av-&gt;visiting)</span>
+<span class="lineNum">     514 </span><span class="lineNoCov">          0 :                 return SD_ERR_CIRCULAR;</span>
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span><span class="lineCov">        106 :         av-&gt;visiting = true;</span>
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span>            :         // make sure any of our dependencies are on runlists before
+<span class="lineNum">     519 </span>            :         // us.
+<span class="lineNum">     520 </span><span class="lineCov">        181 :         for (size_t i = 0; i &lt; av-&gt;direct_deps.len; i++) {</span>
+<span class="lineNum">     521 </span><span class="lineCov">         75 :                 AVar *dep = av-&gt;direct_deps.elems[i];</span>
+<span class="lineNum">     522 </span>            :                 int err;
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span><span class="lineCov">         75 :                 if (dep-&gt;visited)</span>
+<span class="lineNum">     525 </span><span class="lineCov">         28 :                         continue;</span>
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span><span class="lineCov">         47 :                 err = module_add_to_runlists(module, dep);</span>
+<span class="lineNum">     528 </span><span class="lineCov">         47 :                 if (err)</span>
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                         return err;</span>
+<span class="lineNum">     530 </span>            :         }
+<span class="lineNum">     531 </span>            : 
+<span class="lineNum">     532 </span><span class="lineCov">        106 :         if (av-&gt;v-&gt;type == VAR_MODULE) {</span>
+<span class="lineNum">     533 </span><span class="lineCov">          4 :                 slice_append(&amp;module-&gt;initials, av);</span>
+<span class="lineNum">     534 </span><span class="lineCov">          4 :                 slice_append(&amp;module-&gt;flows, av);</span>
+<span class="lineNum">     535 </span><span class="lineCov">          4 :                 slice_append(&amp;module-&gt;stocks, av);</span>
+<span class="lineNum">     536 </span><span class="lineCov">        102 :         } else if (av-&gt;v-&gt;type == VAR_STOCK) {</span>
+<span class="lineNum">     537 </span><span class="lineCov">         13 :                 slice_append(&amp;module-&gt;initials, av);</span>
+<span class="lineNum">     538 </span><span class="lineCov">         13 :                 slice_append(&amp;module-&gt;stocks, av);</span>
+<span class="lineNum">     539 </span>            :                 // refs are not simulated
+<span class="lineNum">     540 </span><span class="lineCov">         89 :         } else if (av-&gt;v-&gt;type != VAR_REF) {</span>
+<span class="lineNum">     541 </span><span class="lineCov">         81 :                 slice_append(&amp;module-&gt;initials, av);</span>
+<span class="lineNum">     542 </span><span class="lineCov">         81 :                 if (av-&gt;is_const)</span>
+<span class="lineNum">     543 </span><span class="lineCov">         27 :                         slice_append(&amp;module-&gt;stocks, av);</span>
+<span class="lineNum">     544 </span>            :                 else
+<span class="lineNum">     545 </span><span class="lineCov">         54 :                         slice_append(&amp;module-&gt;flows, av);</span>
+<span class="lineNum">     546 </span>            :         }
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span><span class="lineCov">        106 :         av-&gt;visited = true;</span>
+<span class="lineNum">     549 </span><span class="lineCov">        106 :         av-&gt;visiting = false;</span>
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span><span class="lineCov">        106 :         return 0;</span>
+<span class="lineNum">     552 </span>            : }
+<a name="553"><span class="lineNum">     553 </span>            : </a>
+<span class="lineNum">     554 </span>            : int
+<span class="lineNum">     555 </span><span class="lineCov">         20 : module_sort_runlists(AVar *module)</span>
+<span class="lineNum">     556 </span>            : {
+<span class="lineNum">     557 </span>            :         int off;
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span><span class="lineCov">         20 :         module_clear_visited(module);</span>
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineCov">         20 :         module-&gt;visiting = true;</span>
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineCov">         20 :         if (!module-&gt;parent)</span>
+<span class="lineNum">     564 </span><span class="lineCov">         16 :                 off = 1;</span>
+<span class="lineNum">     565 </span>            :         else
+<span class="lineNum">     566 </span><span class="lineCov">          4 :                 off = 0;</span>
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span><span class="lineCov">        120 :         for (size_t i = off; i &lt; module-&gt;avars.len; i++) {</span>
+<span class="lineNum">     569 </span><span class="lineCov">        100 :                 AVar *sub = module-&gt;avars.elems[i];</span>
+<span class="lineNum">     570 </span>            :                 int err;
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span><span class="lineCov">        100 :                 if (sub-&gt;visited)</span>
+<span class="lineNum">     573 </span><span class="lineCov">         41 :                         continue;</span>
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineCov">         59 :                 if (sub-&gt;v-&gt;type == VAR_MODULE) {</span>
+<span class="lineNum">     576 </span><span class="lineCov">          4 :                         err = module_sort_runlists(sub);</span>
+<span class="lineNum">     577 </span><span class="lineCov">          4 :                         if (err)</span>
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :                                 return err;</span>
+<span class="lineNum">     579 </span>            :                 }
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span><span class="lineCov">         59 :                 err = module_add_to_runlists(module, sub);</span>
+<span class="lineNum">     582 </span><span class="lineCov">         59 :                 if (err)</span>
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :                         return err;</span>
+<span class="lineNum">     584 </span>            :         }
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineCov">         20 :         module-&gt;visiting = false;</span>
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span><span class="lineCov">         20 :         return 0;</span>
+<span class="lineNum">     589 </span>            : }
+<a name="590"><span class="lineNum">     590 </span>            : </a>
+<span class="lineNum">     591 </span>            : int
+<span class="lineNum">     592 </span><span class="lineCov">         17 : sd_sim_reset(SDSim *s)</span>
+<span class="lineNum">     593 </span>            : {
+<span class="lineNum">     594 </span><span class="lineCov">         17 :         int err = 0;</span>
+<span class="lineNum">     595 </span>            :         size_t save_every;
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span><span class="lineCov">         17 :         s-&gt;spec = s-&gt;module-&gt;model-&gt;file-&gt;sim_specs;</span>
+<span class="lineNum">     598 </span><span class="lineCov">         17 :         s-&gt;step = 0;</span>
+<span class="lineNum">     599 </span><span class="lineCov">         17 :         s-&gt;save_step = 0;</span>
+<span class="lineNum">     600 </span><span class="lineCov">         17 :         s-&gt;nsteps = (s-&gt;spec.stop - s-&gt;spec.start)/s-&gt;spec.dt + 1;</span>
+<span class="lineNum">     601 </span>            : 
+<span class="lineNum">     602 </span><span class="lineCov">         17 :         save_every = s-&gt;spec.savestep/s-&gt;spec.dt+.5;</span>
+<span class="lineNum">     603 </span><span class="lineCov">         17 :         s-&gt;save_every = save_every &gt; 1 ? save_every : 1;</span>
+<span class="lineNum">     604 </span><span class="lineCov">         17 :         s-&gt;nsaves = s-&gt;nsteps/s-&gt;save_every;</span>
+<span class="lineNum">     605 </span><span class="lineCov">         17 :         if (s-&gt;nsteps % s-&gt;save_every)</span>
+<span class="lineNum">     606 </span><span class="lineCov">          2 :                 s-&gt;nsaves++;</span>
 <span class="lineNum">     607 </span>            : 
-<span class="lineNum">     608 </span><span class="lineCov">          6 :         if (strcmp(name, &quot;time&quot;) == 0) {</span>
-<span class="lineNum">     609 </span><span class="lineCov">          1 :                 *result = s-&gt;curr[TIME];</span>
-<span class="lineNum">     610 </span><span class="lineCov">          1 :                 return 0;</span>
-<span class="lineNum">     611 </span>            :         }
-<span class="lineNum">     612 </span>            : 
-<span class="lineNum">     613 </span><span class="lineCov">          5 :         av = resolve(s-&gt;amodels.elems[0], name);</span>
-<span class="lineNum">     614 </span><span class="lineCov">          5 :         if (!av)</span>
-<span class="lineNum">     615 </span><span class="lineCov">          1 :                 return SD_ERR_UNSPECIFIED;</span>
-<span class="lineNum">     616 </span>            : 
-<span class="lineNum">     617 </span><span class="lineCov">          4 :         *result = s-&gt;curr[av-&gt;offset];</span>
-<span class="lineNum">     618 </span><span class="lineCov">          4 :         return 0;</span>
-<span class="lineNum">     619 </span>            : }
-<a name="620"><span class="lineNum">     620 </span>            : </a>
-<span class="lineNum">     621 </span>            : void
-<span class="lineNum">     622 </span><span class="lineCov">          3 : sd_sim_unref(SDSim *sim)</span>
-<span class="lineNum">     623 </span>            : {
-<span class="lineNum">     624 </span><span class="lineCov">          3 :         if (!sim)</span>
-<span class="lineNum">     625 </span><span class="lineCov">          3 :                 return;</span>
-<span class="lineNum">     626 </span><span class="lineCov">          3 :         if (__sync_sub_and_fetch(&amp;sim-&gt;refcount, 1) == 0) {</span>
-<span class="lineNum">     627 </span><span class="lineCov">          3 :                 var_free(sim-&gt;module);</span>
-<span class="lineNum">     628 </span><span class="lineCov">          5 :                 for (size_t i = 0; i &lt; sim-&gt;amodels.len; i++) {</span>
-<span class="lineNum">     629 </span><span class="lineCov">          2 :                         AModel *am = sim-&gt;amodels.elems[i];</span>
-<span class="lineNum">     630 </span><span class="lineCov">          2 :                         amodel_free(am);</span>
-<span class="lineNum">     631 </span>            :                 }
-<span class="lineNum">     632 </span><span class="lineCov">          3 :                 free(sim-&gt;amodels.elems);</span>
-<span class="lineNum">     633 </span><span class="lineCov">          3 :                 sd_project_unref(sim-&gt;project);</span>
-<span class="lineNum">     634 </span><span class="lineCov">          3 :                 free(sim-&gt;slab);</span>
-<span class="lineNum">     635 </span><span class="lineCov">          3 :                 free(sim);</span>
-<span class="lineNum">     636 </span>            :         }
-<span class="lineNum">     637 </span>            : }
-<a name="638"><span class="lineNum">     638 </span>            : </a>
-<span class="lineNum">     639 </span>            : double
-<span class="lineNum">     640 </span><span class="lineCov">    3017360 : svisit(SDSim *s, Node *n)</span>
-<span class="lineNum">     641 </span>            : {
-<span class="lineNum">     642 </span><span class="lineCov">    3017360 :         double v = NAN;</span>
-<span class="lineNum">     643 </span>            :         double cond, l, r;
-<span class="lineNum">     644 </span><span class="lineCov">    3017360 :         const char *name = NULL;</span>
-<span class="lineNum">     645 </span>            : 
-<span class="lineNum">     646 </span><span class="lineCov">    3017360 :         switch (n-&gt;type) {</span>
-<span class="lineNum">     647 </span>            :         case N_PAREN:
-<span class="lineNum">     648 </span><span class="lineCov">          2 :                 v = svisit(s, n-&gt;left);</span>
-<span class="lineNum">     649 </span><span class="lineCov">          2 :                 break;</span>
-<span class="lineNum">     650 </span>            :         case N_FLOATLIT:
-<span class="lineNum">     651 </span><span class="lineCov">    3002904 :                 v = n-&gt;fval;</span>
-<span class="lineNum">     652 </span><span class="lineCov">    3002904 :                 break;</span>
-<span class="lineNum">     653 </span>            :         case N_IDENT:
-<span class="lineNum">     654 </span><span class="lineCov">      10116 :                 v = s-&gt;curr[n-&gt;av-&gt;offset];</span>
-<span class="lineNum">     655 </span><span class="lineCov">      10116 :                 break;</span>
-<span class="lineNum">     656 </span>            :         case N_CALL:
-<span class="lineNum">     657 </span><span class="lineNoCov">          0 :                 name = n-&gt;left-&gt;sval;</span>
-<span class="lineNum">     658 </span>            :                 (void)name;
-<span class="lineNum">     659 </span><span class="lineNoCov">          0 :                 break;</span>
-<span class="lineNum">     660 </span>            :         case N_IF:
-<span class="lineNum">     661 </span><span class="lineNoCov">          0 :                 cond = svisit(s, n-&gt;cond);</span>
-<span class="lineNum">     662 </span><span class="lineNoCov">          0 :                 if (cond != 0)</span>
-<span class="lineNum">     663 </span><span class="lineNoCov">          0 :                         v = svisit(s, n-&gt;left);</span>
-<span class="lineNum">     664 </span>            :                 else
-<span class="lineNum">     665 </span><span class="lineNoCov">          0 :                         v = svisit(s, n-&gt;right);</span>
-<span class="lineNum">     666 </span><span class="lineNoCov">          0 :                 break;</span>
-<span class="lineNum">     667 </span>            :         case N_BINARY:
-<span class="lineNum">     668 </span><span class="lineCov">       4338 :                 l = svisit(s, n-&gt;left);</span>
-<span class="lineNum">     669 </span><span class="lineCov">       4338 :                 r = svisit(s, n-&gt;right);</span>
-<span class="lineNum">     670 </span><span class="lineCov">       4338 :                 switch (n-&gt;op) {</span>
-<span class="lineNum">     671 </span>            :                 case '+':
-<span class="lineNum">     672 </span><span class="lineCov">          2 :                         v = l + r;</span>
-<span class="lineNum">     673 </span><span class="lineCov">          2 :                         break;</span>
-<span class="lineNum">     674 </span>            :                 case '-':
-<span class="lineNum">     675 </span><span class="lineCov">          2 :                         v = l - r;</span>
-<span class="lineNum">     676 </span><span class="lineCov">          2 :                         break;</span>
-<span class="lineNum">     677 </span>            :                 case '*':
-<span class="lineNum">     678 </span><span class="lineCov">       3852 :                         v = l * r;</span>
-<span class="lineNum">     679 </span><span class="lineCov">       3852 :                         break;</span>
-<span class="lineNum">     680 </span>            :                 case '/':
-<span class="lineNum">     681 </span><span class="lineCov">        482 :                         v = l / r;</span>
-<span class="lineNum">     682 </span><span class="lineCov">        482 :                         break;</span>
-<span class="lineNum">     683 </span>            :                 case '^':
-<span class="lineNum">     684 </span><span class="lineNoCov">          0 :                         v = pow(l, r);</span>
-<span class="lineNum">     685 </span><span class="lineNoCov">          0 :                         break;</span>
-<span class="lineNum">     686 </span>            :                 }
-<span class="lineNum">     687 </span><span class="lineCov">       4338 :                 break;</span>
-<span class="lineNum">     688 </span>            :         case N_UNKNOWN:
-<span class="lineNum">     689 </span>            :         default:
-<span class="lineNum">     690 </span>            :                 // TODO: error
-<span class="lineNum">     691 </span><span class="lineNoCov">          0 :                 break;</span>
-<span class="lineNum">     692 </span>            :         }
-<span class="lineNum">     693 </span>            : 
-<span class="lineNum">     694 </span><span class="lineCov">    3017360 :         return v;</span>
-<span class="lineNum">     695 </span>            : }
-<a name="696"><span class="lineNum">     696 </span>            : </a>
-<span class="lineNum">     697 </span>            : int
-<span class="lineNum">     698 </span><span class="lineCov">          3 : sd_sim_get_stepcount(SDSim *sim)</span>
-<span class="lineNum">     699 </span>            : {
-<span class="lineNum">     700 </span><span class="lineCov">          3 :         if (!sim)</span>
-<span class="lineNum">     701 </span><span class="lineCov">          1 :                 return -1;</span>
-<span class="lineNum">     702 </span><span class="lineCov">          2 :         return sim-&gt;nsaves;</span>
-<span class="lineNum">     703 </span>            : }
-<a name="704"><span class="lineNum">     704 </span>            : </a>
-<span class="lineNum">     705 </span>            : int
-<span class="lineNum">     706 </span><span class="lineCov">          2 : sd_sim_get_varcount(SDSim *sim)</span>
-<span class="lineNum">     707 </span>            : {
-<span class="lineNum">     708 </span><span class="lineCov">          2 :         if (!sim)</span>
-<span class="lineNum">     709 </span><span class="lineCov">          1 :                 return -1;</span>
-<span class="lineNum">     710 </span><span class="lineCov">          1 :         return sim-&gt;nvars;</span>
-<span class="lineNum">     711 </span>            : }
-<a name="712"><span class="lineNum">     712 </span>            : </a>
-<span class="lineNum">     713 </span>            : int
-<span class="lineNum">     714 </span><span class="lineCov">          3 : sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)</span>
-<span class="lineNum">     715 </span>            : {
-<span class="lineNum">     716 </span><span class="lineCov">          3 :         size_t i = 0;</span>
-<span class="lineNum">     717 </span>            : 
-<span class="lineNum">     718 </span><span class="lineCov">          3 :         if (!sim || !result)</span>
-<span class="lineNum">     719 </span><span class="lineCov">          1 :                 return -1;</span>
-<span class="lineNum">     720 </span><span class="lineCov">          2 :         else if (max == 0)</span>
-<span class="lineNum">     721 </span><span class="lineCov">          1 :                 return 0;</span>
-<span class="lineNum">     722 </span>            : 
-<span class="lineNum">     723 </span><span class="lineCov">          1 :         result[i] = &quot;time&quot;;</span>
-<span class="lineNum">     724 </span>            : 
-<span class="lineNum">     725 </span>            :         // FIXME: revise for modules case
-<span class="lineNum">     726 </span><span class="lineCov">          1 :         AModel *am = sim-&gt;amodels.elems[0];</span>
-<span class="lineNum">     727 </span><span class="lineCov">          4 :         for (i = 0; i &lt; am-&gt;avars.len &amp;&amp; i+1 &lt; max; i++) {</span>
-<span class="lineNum">     728 </span><span class="lineCov">          3 :                 AVar *av = am-&gt;avars.elems[i];</span>
-<span class="lineNum">     729 </span><span class="lineCov">          3 :                 result[i+1] = av-&gt;v-&gt;name;</span>
-<span class="lineNum">     730 </span>            :         }
-<span class="lineNum">     731 </span><span class="lineCov">          1 :         return (int)i+1;</span>
-<span class="lineNum">     732 </span>            : }
-<a name="733"><span class="lineNum">     733 </span>            : </a>
-<span class="lineNum">     734 </span>            : int
-<span class="lineNum">     735 </span><span class="lineCov">          6 : sd_sim_get_series(SDSim *s, const char *name, double *results, size_t len)</span>
-<span class="lineNum">     736 </span>            : {
-<span class="lineNum">     737 </span>            :         int off;
-<span class="lineNum">     738 </span>            :         size_t i;
-<span class="lineNum">     739 </span>            : 
-<span class="lineNum">     740 </span><span class="lineCov">          6 :         if (!s || !name || !results)</span>
-<span class="lineNum">     741 </span><span class="lineCov">          1 :                 return -1;</span>
-<span class="lineNum">     742 </span>            : 
-<span class="lineNum">     743 </span><span class="lineCov">          5 :         if (strcmp(name, &quot;time&quot;) == 0) {</span>
-<span class="lineNum">     744 </span><span class="lineCov">          1 :                 off = 0;</span>
-<span class="lineNum">     745 </span>            :         } else {
-<span class="lineNum">     746 </span><span class="lineCov">          4 :                 AVar *av = resolve(s-&gt;amodels.elems[0], name);</span>
-<span class="lineNum">     747 </span><span class="lineCov">          4 :                 if (!av)</span>
-<span class="lineNum">     748 </span><span class="lineCov">          1 :                         return -1;</span>
-<span class="lineNum">     749 </span><span class="lineCov">          3 :                 off = av-&gt;offset;</span>
-<span class="lineNum">     750 </span>            :         }
-<span class="lineNum">     751 </span>            : 
-<span class="lineNum">     752 </span><span class="lineCov">         48 :         for (i = 0; i &lt;= s-&gt;nsaves &amp;&amp; i &lt; len; i++)</span>
-<span class="lineNum">     753 </span><span class="lineCov">         44 :                 results[i] = s-&gt;slab[i*s-&gt;nvars + off];</span>
+<span class="lineNum">     608 </span><span class="lineCov">         17 :         free(s-&gt;slab);</span>
+<span class="lineNum">     609 </span>            :         // XXX: 1 extra step to simplify run_to
+<span class="lineNum">     610 </span><span class="lineCov">         17 :         s-&gt;slab = calloc(s-&gt;nvars*(s-&gt;nsaves + 1), sizeof(double));</span>
+<span class="lineNum">     611 </span><span class="lineCov">         17 :         if (!s-&gt;slab) {</span>
+<span class="lineNum">     612 </span><span class="lineNoCov">          0 :                 err = SD_ERR_NOMEM;</span>
+<span class="lineNum">     613 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     614 </span>            :         }
+<span class="lineNum">     615 </span><span class="lineCov">         17 :         s-&gt;curr = s-&gt;slab;</span>
+<span class="lineNum">     616 </span><span class="lineCov">         17 :         s-&gt;next = NULL;</span>
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineCov">         17 :         s-&gt;curr[TIME] = s-&gt;spec.start;</span>
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span><span class="lineCov">         17 :         calc(s, s-&gt;curr, &amp;s-&gt;module-&gt;initials, true);</span>
+<span class="lineNum">     621 </span>            : error:
+<span class="lineNum">     622 </span><span class="lineCov">         17 :         return err;</span>
+<span class="lineNum">     623 </span>            : }
+<a name="624"><span class="lineNum">     624 </span>            : </a>
+<span class="lineNum">     625 </span>            : void
+<span class="lineNum">     626 </span><span class="lineCov">    1004878 : calc(SDSim *s, double *data, Slice *l, bool initial)</span>
+<span class="lineNum">     627 </span>            : {
+<span class="lineNum">     628 </span>            :         double dt;
+<span class="lineNum">     629 </span>            : 
+<span class="lineNum">     630 </span><span class="lineCov">    1004878 :         dt = s-&gt;spec.dt;</span>
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span>            :         //printf(&quot;CALC\n&quot;);
+<span class="lineNum">     633 </span><span class="lineCov">    1016985 :         for (size_t i = 0; i &lt; l-&gt;len; i++) {</span>
+<span class="lineNum">     634 </span><span class="lineCov">      12107 :                 AVar *av = l-&gt;elems[i];</span>
+<span class="lineNum">     635 </span><span class="lineCov">      12107 :                 if (!av-&gt;node) {</span>
+<span class="lineNum">     636 </span><span class="lineCov">        374 :                         if (initial)</span>
+<span class="lineNum">     637 </span><span class="lineCov">         10 :                                 calc(s, data, &amp;av-&gt;initials, true);</span>
+<span class="lineNum">     638 </span>            :                         else
+<span class="lineNum">     639 </span><span class="lineCov">        364 :                                 calc(s, data, &amp;av-&gt;flows, false);</span>
+<span class="lineNum">     640 </span><span class="lineCov">        374 :                         continue;</span>
+<span class="lineNum">     641 </span>            :                 }
+<span class="lineNum">     642 </span><span class="lineCov">      11733 :                 double v = svisit(s, av-&gt;node, dt, data[0]);</span>
+<span class="lineNum">     643 </span><span class="lineCov">      11733 :                 if (av-&gt;v-&gt;gf)</span>
+<span class="lineNum">     644 </span><span class="lineCov">       1728 :                         v = lookup(av-&gt;v-&gt;gf, v);</span>
+<span class="lineNum">     645 </span><span class="lineCov">      11733 :                 data[av-&gt;offset] = v;</span>
+<span class="lineNum">     646 </span>            :         }
+<span class="lineNum">     647 </span><span class="lineCov">    1004878 : }</span>
+<a name="648"><span class="lineNum">     648 </span>            : </a>
+<span class="lineNum">     649 </span>            : void
+<span class="lineNum">     650 </span><span class="lineCov">    1004583 : calc_stocks(SDSim *s, double *data, Slice *l)</span>
+<span class="lineNum">     651 </span>            : {
+<span class="lineNum">     652 </span>            :         double prev, v, dt;
+<span class="lineNum">     653 </span>            : 
+<span class="lineNum">     654 </span><span class="lineCov">    1004583 :         dt = s-&gt;spec.dt;</span>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span>            :         //printf(&quot;CALC STOCKS\n&quot;);
+<span class="lineNum">     657 </span><span class="lineCov">    4029180 :         for (size_t i = 0; i &lt; l-&gt;len; i++) {</span>
+<span class="lineNum">     658 </span><span class="lineCov">    3024597 :                 AVar *av = l-&gt;elems[i];</span>
+<span class="lineNum">     659 </span>            :                 // XXX: this could also be implemented by building the
+<span class="lineNum">     660 </span>            :                 // addition and subtraction of flows in the stock's
+<span class="lineNum">     661 </span>            :                 // AST.  Maybe that would be cleaner?
+<span class="lineNum">     662 </span><span class="lineCov">    3024597 :                 switch (av-&gt;v-&gt;type) {</span>
+<span class="lineNum">     663 </span>            :                 case VAR_STOCK:
+<span class="lineNum">     664 </span><span class="lineCov">    1011325 :                         prev = s-&gt;curr[av-&gt;offset];</span>
+<span class="lineNum">     665 </span><span class="lineCov">    1011325 :                         v = 0;</span>
+<span class="lineNum">     666 </span><span class="lineCov">    2018967 :                         for (size_t i = 0; i &lt; av-&gt;inflows.len; i++) {</span>
+<span class="lineNum">     667 </span><span class="lineCov">    1007642 :                                 AVar *in = av-&gt;inflows.elems[i];</span>
+<span class="lineNum">     668 </span><span class="lineCov">    1007642 :                                 v += s-&gt;curr[in-&gt;offset];</span>
+<span class="lineNum">     669 </span>            :                         }
+<span class="lineNum">     670 </span><span class="lineCov">    1019796 :                         for (size_t i = 0; i &lt; av-&gt;outflows.len; i++) {</span>
+<span class="lineNum">     671 </span><span class="lineCov">       8471 :                                 AVar *out = av-&gt;outflows.elems[i];</span>
+<span class="lineNum">     672 </span><span class="lineCov">       8471 :                                 v -= s-&gt;curr[out-&gt;offset];</span>
+<span class="lineNum">     673 </span>            :                         }
+<span class="lineNum">     674 </span><span class="lineCov">    1011325 :                         data[av-&gt;offset] = prev + v*dt;</span>
+<span class="lineNum">     675 </span><span class="lineCov">    1011325 :                         break;</span>
+<span class="lineNum">     676 </span>            :                 case VAR_MODULE:
+<span class="lineNum">     677 </span><span class="lineCov">         96 :                         calc_stocks(s, data, &amp;av-&gt;stocks);</span>
+<span class="lineNum">     678 </span><span class="lineCov">         96 :                         break;</span>
+<span class="lineNum">     679 </span>            :                 default:
+<span class="lineNum">     680 </span><span class="lineCov">    2013176 :                         v = svisit(s, av-&gt;node, dt, s-&gt;curr[0]);</span>
+<span class="lineNum">     681 </span><span class="lineCov">    2013176 :                         data[av-&gt;offset] = v;</span>
+<span class="lineNum">     682 </span><span class="lineCov">    2013176 :                         break;</span>
+<span class="lineNum">     683 </span>            :                 }
+<span class="lineNum">     684 </span>            :         }
+<span class="lineNum">     685 </span><span class="lineCov">    1004583 : }</span>
+<a name="686"><span class="lineNum">     686 </span>            : </a>
+<span class="lineNum">     687 </span>            : int
+<span class="lineNum">     688 </span><span class="lineCov">         17 : sd_sim_run_to(SDSim *s, double end)</span>
+<span class="lineNum">     689 </span>            : {
+<span class="lineNum">     690 </span>            :         double dt;
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span><span class="lineCov">         17 :         if (!s)</span>
+<span class="lineNum">     693 </span><span class="lineCov">          1 :                 return -1;</span>
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span><span class="lineCov">         16 :         dt = s-&gt;spec.dt;</span>
+<span class="lineNum">     696 </span><span class="lineCov">         16 :         s-&gt;curr = sim_curr(s);</span>
+<span class="lineNum">     697 </span><span class="lineCov">         16 :         s-&gt;next = sim_next(s);</span>
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineCov">    1004503 :         while (s-&gt;step &lt; s-&gt;nsteps &amp;&amp; s-&gt;curr[TIME] &lt;= end) {</span>
+<span class="lineNum">     700 </span><span class="lineCov">    1004487 :                 calc(s, s-&gt;curr, &amp;s-&gt;module-&gt;flows, false);</span>
+<span class="lineNum">     701 </span><span class="lineCov">    1004487 :                 calc_stocks(s, s-&gt;next, &amp;s-&gt;module-&gt;stocks);</span>
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span><span class="lineCov">    1004487 :                 if (s-&gt;step + 1 == s-&gt;nsteps)</span>
+<span class="lineNum">     704 </span><span class="lineCov">         16 :                         break;</span>
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            :                 // calculate this way instead of += dt to minimize
+<span class="lineNum">     707 </span>            :                 // cumulative floating point errors.
+<span class="lineNum">     708 </span><span class="lineCov">    1004471 :                 s-&gt;next[TIME] = s-&gt;spec.start + (s-&gt;step+1)*dt;</span>
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span><span class="lineCov">    1004471 :                 if (s-&gt;step++ % s-&gt;save_every != 0) {</span>
+<span class="lineNum">     711 </span><span class="lineCov">     999990 :                         memcpy(s-&gt;curr, s-&gt;next, s-&gt;nvars*sizeof(double));</span>
+<span class="lineNum">     712 </span>            :                 } else {
+<span class="lineNum">     713 </span><span class="lineCov">       4481 :                         s-&gt;save_step++;</span>
+<span class="lineNum">     714 </span><span class="lineCov">       4481 :                         s-&gt;curr = sim_curr(s);</span>
+<span class="lineNum">     715 </span><span class="lineCov">       4481 :                         s-&gt;next = sim_next(s);</span>
+<span class="lineNum">     716 </span>            :                 }
+<span class="lineNum">     717 </span>            :         }
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineCov">         16 :         return 0;</span>
+<span class="lineNum">     720 </span>            : }
+<a name="721"><span class="lineNum">     721 </span>            : </a>
+<span class="lineNum">     722 </span>            : int
+<span class="lineNum">     723 </span><span class="lineCov">         17 : sd_sim_run_to_end(SDSim *s)</span>
+<span class="lineNum">     724 </span>            : {
+<span class="lineNum">     725 </span><span class="lineCov">         17 :         if (!s)</span>
+<span class="lineNum">     726 </span><span class="lineCov">          1 :                 return -1;</span>
+<span class="lineNum">     727 </span><span class="lineCov">         16 :         return sd_sim_run_to(s, s-&gt;spec.stop + 1);</span>
+<span class="lineNum">     728 </span>            : }
+<a name="729"><span class="lineNum">     729 </span>            : </a>
+<span class="lineNum">     730 </span>            : double *
+<span class="lineNum">     731 </span><span class="lineCov">       4497 : sim_curr(SDSim *s)</span>
+<span class="lineNum">     732 </span>            : {
+<span class="lineNum">     733 </span><span class="lineCov">       4497 :         return &amp;s-&gt;slab[s-&gt;save_step*s-&gt;nvars];</span>
+<span class="lineNum">     734 </span>            : }
+<a name="735"><span class="lineNum">     735 </span>            : </a>
+<span class="lineNum">     736 </span>            : double *
+<span class="lineNum">     737 </span><span class="lineCov">       4497 : sim_next(SDSim *s)</span>
+<span class="lineNum">     738 </span>            : {
+<span class="lineNum">     739 </span><span class="lineCov">       4497 :         return &amp;s-&gt;slab[(s-&gt;save_step+1)*s-&gt;nvars];</span>
+<span class="lineNum">     740 </span>            : }
+<a name="741"><span class="lineNum">     741 </span>            : </a>
+<span class="lineNum">     742 </span>            : void
+<span class="lineNum">     743 </span><span class="lineCov">         18 : sd_sim_ref(SDSim *sim)</span>
+<span class="lineNum">     744 </span>            : {
+<span class="lineNum">     745 </span><span class="lineCov">         18 :         if (!sim)</span>
+<span class="lineNum">     746 </span><span class="lineCov">          1 :                 return;</span>
+<span class="lineNum">     747 </span><span class="lineCov">         17 :         __sync_fetch_and_add(&amp;sim-&gt;refcount, 1);</span>
+<span class="lineNum">     748 </span>            : }
+<a name="749"><span class="lineNum">     749 </span>            : </a>
+<span class="lineNum">     750 </span>            : int
+<span class="lineNum">     751 </span><span class="lineCov">          7 : sd_sim_get_value(SDSim *s, const char *name, double *result)</span>
+<span class="lineNum">     752 </span>            : {
+<span class="lineNum">     753 </span>            :         AVar *av;
 <span class="lineNum">     754 </span>            : 
-<span class="lineNum">     755 </span><span class="lineCov">          4 :         return i;</span>
-<span class="lineNum">     756 </span>            : }
+<span class="lineNum">     755 </span><span class="lineCov">          7 :         if (!s || !name || !result)</span>
+<span class="lineNum">     756 </span><span class="lineCov">          1 :                 return SD_ERR_UNSPECIFIED;</span>
+<span class="lineNum">     757 </span>            : 
+<span class="lineNum">     758 </span><span class="lineCov">          6 :         if (strcmp(name, &quot;time&quot;) == 0) {</span>
+<span class="lineNum">     759 </span><span class="lineCov">          1 :                 *result = s-&gt;curr[TIME];</span>
+<span class="lineNum">     760 </span><span class="lineCov">          1 :                 return 0;</span>
+<span class="lineNum">     761 </span>            :         }
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineCov">          5 :         av = resolve(s-&gt;module, name);</span>
+<span class="lineNum">     764 </span><span class="lineCov">          5 :         if (!av)</span>
+<span class="lineNum">     765 </span><span class="lineCov">          1 :                 return SD_ERR_UNSPECIFIED;</span>
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span><span class="lineCov">          4 :         *result = s-&gt;curr[av-&gt;offset];</span>
+<span class="lineNum">     768 </span><span class="lineCov">          4 :         return 0;</span>
+<span class="lineNum">     769 </span>            : }
+<a name="770"><span class="lineNum">     770 </span>            : </a>
+<span class="lineNum">     771 </span>            : void
+<span class="lineNum">     772 </span><span class="lineCov">         17 : sd_sim_unref(SDSim *sim)</span>
+<span class="lineNum">     773 </span>            : {
+<span class="lineNum">     774 </span><span class="lineCov">         17 :         if (!sim)</span>
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     776 </span><span class="lineCov">         17 :         if (__sync_sub_and_fetch(&amp;sim-&gt;refcount, 1) == 0) {</span>
+<span class="lineNum">     777 </span><span class="lineCov">         17 :                 avar_free(sim-&gt;module);</span>
+<span class="lineNum">     778 </span><span class="lineCov">         17 :                 sd_project_unref(sim-&gt;project);</span>
+<span class="lineNum">     779 </span><span class="lineCov">         17 :                 free(sim-&gt;slab);</span>
+<span class="lineNum">     780 </span><span class="lineCov">         17 :                 free(sim);</span>
+<span class="lineNum">     781 </span>            :         }
+<span class="lineNum">     782 </span>            : }
+<a name="783"><span class="lineNum">     783 </span>            : </a>
+<span class="lineNum">     784 </span>            : double
+<span class="lineNum">     785 </span><span class="lineCov">    2058940 : svisit(SDSim *s, Node *n, double dt, double time)</span>
+<span class="lineNum">     786 </span>            : {
+<span class="lineNum">     787 </span><span class="lineCov">    2058940 :         double v = NAN;</span>
+<span class="lineNum">     788 </span>            :         double cond, l, r;
+<span class="lineNum">     789 </span>            :         double args[6];
+<span class="lineNum">     790 </span>            :         int off;
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span><span class="lineCov">    2058940 :         switch (n-&gt;type) {</span>
+<span class="lineNum">     793 </span>            :         case N_PAREN:
+<span class="lineNum">     794 </span><span class="lineCov">        486 :                 v = svisit(s, n-&gt;left, dt, time);</span>
+<span class="lineNum">     795 </span><span class="lineCov">        486 :                 break;</span>
+<span class="lineNum">     796 </span>            :         case N_FLOATLIT:
+<span class="lineNum">     797 </span><span class="lineCov">    2013567 :                 v = n-&gt;fval;</span>
+<span class="lineNum">     798 </span><span class="lineCov">    2013567 :                 break;</span>
+<span class="lineNum">     799 </span>            :         case N_IDENT:
+<span class="lineNum">     800 </span><span class="lineCov">      28132 :                 if (n-&gt;av-&gt;src)</span>
+<span class="lineNum">     801 </span><span class="lineCov">        200 :                         off = n-&gt;av-&gt;src-&gt;offset;</span>
+<span class="lineNum">     802 </span>            :                 else
+<span class="lineNum">     803 </span><span class="lineCov">      27932 :                         off = n-&gt;av-&gt;offset;</span>
+<span class="lineNum">     804 </span><span class="lineCov">      28132 :                 v = s-&gt;curr[off];</span>
+<span class="lineNum">     805 </span><span class="lineCov">      28132 :                 break;</span>
+<span class="lineNum">     806 </span>            :         case N_CALL:
+<span class="lineNum">     807 </span><span class="lineCov">         74 :                 memset(args, 0, 6*sizeof(*args));</span>
+<span class="lineNum">     808 </span><span class="lineCov">         74 :                 (void)n-&gt;left-&gt;sval;</span>
+<span class="lineNum">     809 </span><span class="lineCov">        272 :                 for (size_t i = 0; i &lt; n-&gt;args.len; i++) {</span>
+<span class="lineNum">     810 </span><span class="lineCov">        198 :                         Node *arg = n-&gt;args.elems[i];</span>
+<span class="lineNum">     811 </span><span class="lineCov">        198 :                         args[i] = svisit(s, arg, dt, time);</span>
+<span class="lineNum">     812 </span>            :                 }
+<span class="lineNum">     813 </span><span class="lineCov">         74 :                 v = n-&gt;fn(s, n, dt, time, n-&gt;args.len, args);</span>
+<span class="lineNum">     814 </span><span class="lineCov">         74 :                 break;</span>
+<span class="lineNum">     815 </span>            :         case N_IF:
+<span class="lineNum">     816 </span><span class="lineCov">         68 :                 cond = svisit(s, n-&gt;cond, dt, time);</span>
+<span class="lineNum">     817 </span><span class="lineCov">         68 :                 if (cond != 0)</span>
+<span class="lineNum">     818 </span><span class="lineCov">         43 :                         v = svisit(s, n-&gt;left, dt, time);</span>
+<span class="lineNum">     819 </span>            :                 else
+<span class="lineNum">     820 </span><span class="lineCov">         25 :                         v = svisit(s, n-&gt;right, dt, time);</span>
+<span class="lineNum">     821 </span><span class="lineCov">         68 :                 break;</span>
+<span class="lineNum">     822 </span>            :         case N_UNARY:
+<span class="lineNum">     823 </span><span class="lineCov">         15 :                 l = svisit(s, n-&gt;left, dt, time);</span>
+<span class="lineNum">     824 </span><span class="lineCov">         15 :                 switch (n-&gt;op) {</span>
+<span class="lineNum">     825 </span>            :                 case '+':
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :                         v = l;</span>
+<span class="lineNum">     827 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     828 </span>            :                 case '-':
+<span class="lineNum">     829 </span><span class="lineCov">         12 :                         v = -l;</span>
+<span class="lineNum">     830 </span><span class="lineCov">         12 :                         break;</span>
+<span class="lineNum">     831 </span>            :                 case '!':
+<span class="lineNum">     832 </span><span class="lineCov">          3 :                         v = l == 0 ? 1 : 0;</span>
+<span class="lineNum">     833 </span><span class="lineCov">          3 :                         break;</span>
+<span class="lineNum">     834 </span>            :                 }
+<span class="lineNum">     835 </span><span class="lineCov">         15 :                 break;</span>
+<span class="lineNum">     836 </span>            :         case N_BINARY:
+<span class="lineNum">     837 </span><span class="lineCov">      16598 :                 l = svisit(s, n-&gt;left, dt, time);</span>
+<span class="lineNum">     838 </span><span class="lineCov">      16598 :                 r = svisit(s, n-&gt;right, dt, time);</span>
+<span class="lineNum">     839 </span><span class="lineCov">      16598 :                 switch (n-&gt;op) {</span>
+<span class="lineNum">     840 </span>            :                 case '+':
+<span class="lineNum">     841 </span><span class="lineCov">          5 :                         v = l + r;</span>
+<span class="lineNum">     842 </span><span class="lineCov">          5 :                         break;</span>
+<span class="lineNum">     843 </span>            :                 case '-':
+<span class="lineNum">     844 </span><span class="lineCov">        489 :                         v = l - r;</span>
+<span class="lineNum">     845 </span><span class="lineCov">        489 :                         break;</span>
+<span class="lineNum">     846 </span>            :                 case '*':
+<span class="lineNum">     847 </span><span class="lineCov">       8532 :                         v = l * r;</span>
+<span class="lineNum">     848 </span><span class="lineCov">       8532 :                         break;</span>
+<span class="lineNum">     849 </span>            :                 case '/':
+<span class="lineNum">     850 </span><span class="lineCov">       7423 :                         v = l / r;</span>
+<span class="lineNum">     851 </span><span class="lineCov">       7423 :                         break;</span>
+<span class="lineNum">     852 </span>            :                 case '&lt;':
+<span class="lineNum">     853 </span><span class="lineCov">         12 :                         v = l &lt; r ? 1 : 0;</span>
+<span class="lineNum">     854 </span><span class="lineCov">         12 :                         break;</span>
+<span class="lineNum">     855 </span>            :                 case '&gt;':
+<span class="lineNum">     856 </span><span class="lineCov">         62 :                         v = l &gt; r ? 1 : 0;</span>
+<span class="lineNum">     857 </span><span class="lineCov">         62 :                         break;</span>
+<span class="lineNum">     858 </span>            :                 case '&amp;':
+<span class="lineNum">     859 </span><span class="lineCov">          3 :                         v = l == 1 &amp;&amp; r == 1 ? 1 : 0;</span>
+<span class="lineNum">     860 </span><span class="lineCov">          3 :                         break;</span>
+<span class="lineNum">     861 </span>            :                 case '|':
+<span class="lineNum">     862 </span><span class="lineCov">          3 :                         v = l == 1 || r == 1 ? 1 : 0;</span>
+<span class="lineNum">     863 </span><span class="lineCov">          3 :                         break;</span>
+<span class="lineNum">     864 </span>            :                 case '=':
+<span class="lineNum">     865 </span><span class="lineCov">         21 :                         v = l == r;</span>
+<span class="lineNum">     866 </span><span class="lineCov">         21 :                         break;</span>
+<span class="lineNum">     867 </span>            :                 case u'≠':
+<span class="lineNum">     868 </span><span class="lineCov">         12 :                         v = l != r;</span>
+<span class="lineNum">     869 </span><span class="lineCov">         12 :                         break;</span>
+<span class="lineNum">     870 </span>            :                 case u'≤':
+<span class="lineNum">     871 </span><span class="lineCov">         12 :                         v = l &lt;= r ? 1 : 0;</span>
+<span class="lineNum">     872 </span><span class="lineCov">         12 :                         break;</span>
+<span class="lineNum">     873 </span>            :                 case u'≥':
+<span class="lineNum">     874 </span><span class="lineCov">         12 :                         v = l &gt;= r ? 1 : 0;</span>
+<span class="lineNum">     875 </span><span class="lineCov">         12 :                         break;</span>
+<span class="lineNum">     876 </span>            :                 case '^':
+<span class="lineNum">     877 </span><span class="lineCov">         12 :                         v = pow(l, r);</span>
+<span class="lineNum">     878 </span><span class="lineCov">         12 :                         break;</span>
+<span class="lineNum">     879 </span>            :                 default:
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :                         printf(&quot;unknown binary op (%c) encountered\n&quot;, n-&gt;op);</span>
+<span class="lineNum">     881 </span>            :                 }
+<span class="lineNum">     882 </span><span class="lineCov">      16598 :                 break;</span>
+<span class="lineNum">     883 </span>            :         case N_UNKNOWN:
+<span class="lineNum">     884 </span>            :         default:
+<span class="lineNum">     885 </span><span class="lineNoCov">          0 :                 printf(&quot;unknown node encountered\n&quot;);</span>
+<span class="lineNum">     886 </span>            :                 // TODO: error
+<span class="lineNum">     887 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     888 </span>            :         }
+<span class="lineNum">     889 </span>            : 
+<span class="lineNum">     890 </span><span class="lineCov">    2058940 :         return v;</span>
+<span class="lineNum">     891 </span>            : }
+<a name="892"><span class="lineNum">     892 </span>            : </a>
+<span class="lineNum">     893 </span>            : int
+<span class="lineNum">     894 </span><span class="lineCov">         17 : sd_sim_get_stepcount(SDSim *sim)</span>
+<span class="lineNum">     895 </span>            : {
+<span class="lineNum">     896 </span><span class="lineCov">         17 :         if (!sim)</span>
+<span class="lineNum">     897 </span><span class="lineCov">          1 :                 return -1;</span>
+<span class="lineNum">     898 </span><span class="lineCov">         16 :         return sim-&gt;nsaves;</span>
+<span class="lineNum">     899 </span>            : }
+<a name="900"><span class="lineNum">     900 </span>            : </a>
+<span class="lineNum">     901 </span>            : int
+<span class="lineNum">     902 </span><span class="lineCov">         15 : sd_sim_get_varcount(SDSim *sim)</span>
+<span class="lineNum">     903 </span>            : {
+<span class="lineNum">     904 </span><span class="lineCov">         15 :         if (!sim)</span>
+<span class="lineNum">     905 </span><span class="lineCov">          1 :                 return -1;</span>
+<span class="lineNum">     906 </span><span class="lineCov">         14 :         return sim-&gt;nvars;</span>
+<span class="lineNum">     907 </span>            : }
+<a name="908"><span class="lineNum">     908 </span>            : </a>
+<span class="lineNum">     909 </span>            : int
+<span class="lineNum">     910 </span><span class="lineCov">         16 : sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)</span>
+<span class="lineNum">     911 </span>            : {
+<span class="lineNum">     912 </span><span class="lineCov">         16 :         if (!sim || !result)</span>
+<span class="lineNum">     913 </span><span class="lineCov">          1 :                 return -1;</span>
+<span class="lineNum">     914 </span><span class="lineCov">         15 :         else if (max == 0)</span>
+<span class="lineNum">     915 </span><span class="lineCov">          1 :                 return 0;</span>
+<span class="lineNum">     916 </span>            : 
+<span class="lineNum">     917 </span><span class="lineCov">         14 :         return module_get_varnames(sim-&gt;module, result, max);</span>
+<span class="lineNum">     918 </span>            : }
+<a name="919"><span class="lineNum">     919 </span>            : </a>
+<span class="lineNum">     920 </span>            : int
+<span class="lineNum">     921 </span><span class="lineCov">         16 : module_get_varnames(AVar *module, const char **result, size_t max)</span>
+<span class="lineNum">     922 </span>            : {
+<span class="lineNum">     923 </span><span class="lineCov">         16 :         const char **start = result;</span>
+<span class="lineNum">     924 </span>            : 
+<span class="lineNum">     925 </span><span class="lineCov">         95 :         for (size_t i = 0; i &lt; module-&gt;avars.len &amp;&amp; max &gt; 0; i++) {</span>
+<span class="lineNum">     926 </span><span class="lineCov">         79 :                 AVar *av = module-&gt;avars.elems[i];</span>
+<span class="lineNum">     927 </span><span class="lineCov">         79 :                 if (av-&gt;model) {</span>
+<span class="lineNum">     928 </span><span class="lineCov">          2 :                         size_t n = module_get_varnames(av, result, max);</span>
+<span class="lineNum">     929 </span><span class="lineCov">          2 :                         result += n;</span>
+<span class="lineNum">     930 </span><span class="lineCov">          2 :                         max -= n;</span>
+<span class="lineNum">     931 </span><span class="lineCov">         77 :                 } else if (!av-&gt;src) {</span>
+<span class="lineNum">     932 </span>            :                         // only include non-ghosts in output
+<span class="lineNum">     933 </span><span class="lineCov">         73 :                         *result = avar_qual_name(av);</span>
+<span class="lineNum">     934 </span><span class="lineCov">         73 :                         result++;</span>
+<span class="lineNum">     935 </span><span class="lineCov">         73 :                         max--;</span>
+<span class="lineNum">     936 </span>            :                 }
+<span class="lineNum">     937 </span>            :         }
+<span class="lineNum">     938 </span><span class="lineCov">         16 :         return result-start;</span>
+<span class="lineNum">     939 </span>            : }
+<a name="940"><span class="lineNum">     940 </span>            : </a>
+<span class="lineNum">     941 </span>            : void
+<span class="lineNum">     942 </span><span class="lineCov">         24 : module_clear_visited(AVar *module)</span>
+<span class="lineNum">     943 </span>            : {
+<span class="lineNum">     944 </span><span class="lineCov">        172 :         for (size_t i = 0; i &lt; module-&gt;avars.len; i++) {</span>
+<span class="lineNum">     945 </span><span class="lineCov">        148 :                 AVar *av = module-&gt;avars.elems[i];</span>
+<span class="lineNum">     946 </span><span class="lineCov">        148 :                 if (av-&gt;model) {</span>
+<span class="lineNum">     947 </span><span class="lineCov">          4 :                         module_clear_visited(av);</span>
+<span class="lineNum">     948 </span>            :                 } else {
+<span class="lineNum">     949 </span><span class="lineCov">        144 :                         av-&gt;visited = false;</span>
+<span class="lineNum">     950 </span><span class="lineCov">        144 :                         av-&gt;visiting = false;</span>
+<span class="lineNum">     951 </span>            :                 }
+<span class="lineNum">     952 </span>            :         }
+<span class="lineNum">     953 </span><span class="lineCov">         24 :         module-&gt;visited = false;</span>
+<span class="lineNum">     954 </span><span class="lineCov">         24 :         module-&gt;visiting = false;</span>
+<span class="lineNum">     955 </span><span class="lineCov">         24 : }</span>
+<a name="956"><span class="lineNum">     956 </span>            : </a>
+<span class="lineNum">     957 </span>            : int
+<span class="lineNum">     958 </span><span class="lineCov">         77 : sd_sim_get_series(SDSim *s, const char *name, double *results, size_t len)</span>
+<span class="lineNum">     959 </span>            : {
+<span class="lineNum">     960 </span>            :         int off;
+<span class="lineNum">     961 </span>            :         size_t i;
+<span class="lineNum">     962 </span>            : 
+<span class="lineNum">     963 </span><span class="lineCov">         77 :         if (!s || !name || !results)</span>
+<span class="lineNum">     964 </span><span class="lineCov">          1 :                 return -1;</span>
+<span class="lineNum">     965 </span>            : 
+<span class="lineNum">     966 </span><span class="lineCov">         76 :         if (strcmp(name, &quot;time&quot;) == 0) {</span>
+<span class="lineNum">     967 </span><span class="lineCov">         15 :                 off = 0;</span>
+<span class="lineNum">     968 </span>            :         } else {
+<span class="lineNum">     969 </span><span class="lineCov">         61 :                 AVar *av = resolve(s-&gt;module, name);</span>
+<span class="lineNum">     970 </span><span class="lineCov">         61 :                 if (!av)</span>
+<span class="lineNum">     971 </span><span class="lineCov">          1 :                         return -1;</span>
+<span class="lineNum">     972 </span><span class="lineCov">         60 :                 off = av-&gt;offset;</span>
+<span class="lineNum">     973 </span>            :         }
+<span class="lineNum">     974 </span>            : 
+<span class="lineNum">     975 </span><span class="lineCov">      32750 :         for (i = 0; i &lt;= s-&gt;nsaves &amp;&amp; i &lt; len; i++)</span>
+<span class="lineNum">     976 </span><span class="lineCov">      32675 :                 results[i] = s-&gt;slab[i*s-&gt;nvars + off];</span>
+<span class="lineNum">     977 </span>            : 
+<span class="lineNum">     978 </span><span class="lineCov">         75 :         return i;</span>
+<span class="lineNum">     979 </span>            : }
+<a name="980"><span class="lineNum">     980 </span>            : </a>
+<span class="lineNum">     981 </span>            : double
+<span class="lineNum">     982 </span><span class="lineCov">         50 : rt_pulse(SDSim *s, Node *n, double dt, double time, size_t len, double *args)</span>
+<span class="lineNum">     983 </span>            : {
+<span class="lineNum">     984 </span>            :         double magnitude, first_pulse, next_pulse, interval;
+<span class="lineNum">     985 </span>            : 
+<span class="lineNum">     986 </span><span class="lineCov">         50 :         magnitude = args[0];</span>
+<span class="lineNum">     987 </span><span class="lineCov">         50 :         first_pulse = args[1];</span>
+<span class="lineNum">     988 </span><span class="lineCov">         50 :         if (len &gt; 2)</span>
+<span class="lineNum">     989 </span><span class="lineCov">         50 :                 interval = args[2];</span>
+<span class="lineNum">     990 </span>            :         else
+<span class="lineNum">     991 </span><span class="lineNoCov">          0 :                 interval = 0;</span>
+<span class="lineNum">     992 </span>            : 
+<span class="lineNum">     993 </span><span class="lineCov">         50 :         if (time &lt; first_pulse)</span>
+<span class="lineNum">     994 </span><span class="lineCov">         16 :                 return 0;</span>
+<span class="lineNum">     995 </span>            : 
+<span class="lineNum">     996 </span><span class="lineCov">         34 :         next_pulse = first_pulse;</span>
+<span class="lineNum">     997 </span>            : 
+<span class="lineNum">     998 </span><span class="lineCov">         68 :         while (time &gt;= next_pulse) {</span>
+<span class="lineNum">     999 </span><span class="lineCov">         34 :                 if (time &lt; next_pulse + dt)</span>
+<span class="lineNum">    1000 </span><span class="lineCov">          2 :                         return magnitude/dt;</span>
+<span class="lineNum">    1001 </span><span class="lineCov">         32 :                 else if (interval &lt;= 0)</span>
+<span class="lineNum">    1002 </span><span class="lineCov">         32 :                         break;</span>
+<span class="lineNum">    1003 </span>            :                 else
+<span class="lineNum">    1004 </span><span class="lineNoCov">          0 :                         next_pulse += interval;</span>
+<span class="lineNum">    1005 </span>            :         }
+<span class="lineNum">    1006 </span><span class="lineCov">         32 :         return 0;</span>
+<span class="lineNum">    1007 </span>            : }
+<a name="1008"><span class="lineNum">    1008 </span>            : </a>
+<span class="lineNum">    1009 </span>            : double
+<span class="lineNum">    1010 </span><span class="lineCov">         12 : rt_min(SDSim *s, Node *n, double dt, double time, size_t len, double *args)</span>
+<span class="lineNum">    1011 </span>            : {
+<span class="lineNum">    1012 </span>            :         double a, b;
+<span class="lineNum">    1013 </span>            : 
+<span class="lineNum">    1014 </span><span class="lineCov">         12 :         if (len != 2)</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :                 return NAN;</span>
+<span class="lineNum">    1016 </span>            : 
+<span class="lineNum">    1017 </span><span class="lineCov">         12 :         a = args[0];</span>
+<span class="lineNum">    1018 </span><span class="lineCov">         12 :         b = args[1];</span>
+<span class="lineNum">    1019 </span>            : 
+<span class="lineNum">    1020 </span><span class="lineCov">         12 :         return a &lt; b ? a : b;</span>
+<span class="lineNum">    1021 </span>            : }
+<a name="1022"><span class="lineNum">    1022 </span>            : </a>
+<span class="lineNum">    1023 </span>            : double
+<span class="lineNum">    1024 </span><span class="lineCov">         12 : rt_max(SDSim *s, Node *n, double dt, double time, size_t len, double *args)</span>
+<span class="lineNum">    1025 </span>            : {
+<span class="lineNum">    1026 </span>            :         double a, b;
+<span class="lineNum">    1027 </span>            : 
+<span class="lineNum">    1028 </span><span class="lineCov">         12 :         if (len != 2)</span>
+<span class="lineNum">    1029 </span><span class="lineNoCov">          0 :                 return NAN;</span>
+<span class="lineNum">    1030 </span>            : 
+<span class="lineNum">    1031 </span><span class="lineCov">         12 :         a = args[0];</span>
+<span class="lineNum">    1032 </span><span class="lineCov">         12 :         b = args[1];</span>
+<span class="lineNum">    1033 </span>            : 
+<span class="lineNum">    1034 </span><span class="lineCov">         12 :         return a &gt; b ? a : b;</span>
+<span class="lineNum">    1035 </span>            : }
 </pre>
       </td>
     </tr>
