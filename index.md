@@ -5,11 +5,11 @@ tagline: Linux, Go, coffee, system dynamics
 ---
 {% include JB/setup %}
 
-This is my internet-home, with potentially-interesting links to things
-I've done along with occasional weblog postings.
+This is my internet-home with links to projects I've worked on, along
+with occasional weblog postings.
 
-Excitingly, September 2015 I am starting a graduate program in CS at [UMass
-Amherst](https://www.cs.umass.edu/)!
+As of September 2015 I've started grad school in CS at [UMass
+Amherst](https://www.cics.umass.edu/)!
 
 ## Recent Posts
 
@@ -24,24 +24,30 @@ Amherst](https://www.cs.umass.edu/)!
 - [libsd](https://github.com/sdlabs/libsd) - System Dynamics
   simulation engine in C.
 
+- [sd.js](https://github.com/sdlabs/sd.js) - System Dynamics
+  simulation engine and diagram layout in JavaScript.
+
 - [seshcookie](https://github.com/bpowers/seshcookie) - http sessions
   stored in encrypted cookies for Go.
 
 - [psm](https://github.com/bpowers/psm2) - a Linux utility for RAM and
   swap reporting.
 
-- [cnote](https://github.com/bpowers/cnote) - an HTTP-based music
-  indexing service written in C.
+- [cnote](https://github.com/bpowers/cnote) - a music indexing service
+  written in C that exposes a REST API.
 
-- [lightswitch rave](https://github.com/bpowers/lightswitchrave) -
-  spiritual successor to cnote, written in Go.
+- [btscale](https://github.com/bpowers/btscale) - reverse-engineered
+  JS API to the Acaia scale.
+
+- [slackfs](https://github.com/bpowers/slackfs) - FUSE filesystem to
+  interact with Slack, along with tmux-based UI.
+
 
 ## Free Software
 
-I use and support free software, having contributed in (usually
-minor) ways to a variety of projects over the years - mostly to
-address issues that I've encountered.  I like to leave things better
-than how I found them.
+I use and support free software, having contributed to a variety of
+projects over the years - mostly to address issues that I've
+encountered.  I like to leave things better than how I found them.
 
 ### Linux kernel
 
@@ -91,9 +97,9 @@ speeding up boot time by 12 seconds.
 
 ## Coffee
 
-I love coffee.  Eventually I will expand on that, but in the mean time
-feel free to corner me in real life to discuss coffee, ideally over a
-cup of coffee.
+I love coffee.  I've done some work on accessing the [Acaia
+scale](http://acaia.co/) from JavaScript, which required reverse
+engineering their wire protocol.
 
 ## System dynamics
 
@@ -102,8 +108,13 @@ I even wrote a nice thesis on how you could neatly [apply
 object-oriented programming](/thesis.pdf) to modeling, as a method of
 reducing complexity.
 
+I'm currently working on a web-based editor for SD models, with a
+focus on usability and design:
+
+![editor](images/editor-screenshot.png)
+
 ## Employment
 
-I was most recently was a software architect at
+I was most recently a software architect at
 [SocialCode](http://socialcode.com).  I am currently pursuing a
 graduate education in CS full-time, focusing on systems.
