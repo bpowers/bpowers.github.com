@@ -5,11 +5,14 @@ tagline: Linux, Go, coffee, system dynamics
 ---
 {% include JB/setup %}
 
-This is my internet-home with links to projects I've worked on, along
-with occasional weblog postings.
+<img src="/images/headshot.jpg" width="227" height="266" style="float: right;" />
 
-As of September 2015 I've started grad school in CS at [UMass
-Amherst](https://www.cics.umass.edu/)!
+I'm a first-year grad student in the [PLASMA
+Lab](http://plasma.cs.umass.edu/) at [UMass
+Amherst](https://www.cics.umass.edu/), advised by [Emery
+Berger](http://emeryberger.com/).  Before this, I was most recently a
+software architect at [SocialCode](http://socialcode.com) where I
+worked on developing scalable, maintainable backend systems.
 
 ## Recent Posts
 
@@ -113,9 +116,5 @@ focus on usability and design:
 
 <center><img src="/images/editor-screenshot.png" width="651" height="562" /></center>
 
-
-## Employment
-
-I was most recently a software architect at
-[SocialCode](http://socialcode.com).  I am currently pursuing a
-graduate education in CS full-time, focusing on systems.
+<br>
+<br>
