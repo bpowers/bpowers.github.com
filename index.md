@@ -111,7 +111,7 @@ reducing complexity.
 I'm currently working on a web-based editor for SD models, with a
 focus on usability and design:
 
-![editor](images/editor-screenshot.png)
+![editor](images/editor-screenshot.png =731x)
 
 ## Employment
 
