@@ -2,6 +2,7 @@
 layout: page
 title: Bobby Powers
 tagline: Linux, Go, coffee, system dynamics
+redirect: https://bpowers.net
 ---
 {% include JB/setup %}
 
